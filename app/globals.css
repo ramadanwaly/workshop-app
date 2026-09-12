@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+:root {
+  /* لوحة ألوان الورشة الدافئة (DESIGN_SYSTEM.md) */
+  --brand-primary: #3e2417;
+  --brand-accent: #b8873a;
+  --brand-secondary: #8B633E;
+  --brand-background: #faf5ee;
+  --brand-ink: #2b1b12;
+  --brand-danger: #b3432b;
+  --brand-success: #5c7a3d;
+}
+
+@theme inline {
+  --color-primary: var(--brand-primary);
+  --color-accent: var(--brand-accent);
+  --color-secondary: var(--brand-secondary);
+  --color-background: var(--brand-background);
+  --color-ink: var(--brand-ink);
+  --color-danger: var(--brand-danger);
+  --color-success: var(--brand-success);
+  --font-sans: var(--font-cairo);
+  --font-mono: var(--font-cairo);
+}
+
+body {
+  background: var(--brand-background);
+  color: var(--brand-ink);
+  font-family: var(--font-cairo), sans-serif;
+}
