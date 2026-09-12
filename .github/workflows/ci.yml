@@ -21,10 +21,7 @@ jobs:
     needs: check
     steps:
       - uses: actions/checkout@v4
-      - name: Install Docker CLI
-        run: |
-          apt-get update
-          apt-get install -y docker.io
+
       - name: Build Docker image
         run: docker build -t workshop-app:ci-${{ github.run_number }}-${GITHUB_SHA::7} .
       - name: Show built image
