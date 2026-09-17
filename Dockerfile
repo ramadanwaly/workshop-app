@@ -3,15 +3,15 @@
 # Build with output: 'standalone' (see next.config.ts).
 # Run as unprivileged node user; copy only the standalone build + static assets.
 # ============================================================================
-FROM node:26.9.0-alpine3.24 AS base
+FROM node:22-alpine AS base
 WORKDIR /app
 
-FROM node:26.9.0-alpine3.24 AS deps
+FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM node:26.9.0-alpine3.24 AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -26,12 +26,18 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build
 
-FROM node:26.9.0-alpine3.24 AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+
+# تحديث نظام Alpine وتحديث npm لأحدث ترقيع أمني رسمي
 RUN apk update && apk upgrade --no-cache \
+    && npm install -g npm@latest \
+    && npm cache clean --force \
+    && rm -rf /root/.npm \
     && addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
+
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
