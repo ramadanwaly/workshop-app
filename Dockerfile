@@ -30,11 +30,10 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# تحديث نظام Alpine وتحديث npm لأحدث ترقيع أمني رسمي
+# تحديث حزم النظام ثم حذف npm ومجلداته بالكامل
 RUN apk update && apk upgrade --no-cache \
-    && npm install -g npm@latest \
-    && npm cache clean --force \
-    && rm -rf /root/.npm \
+    && rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx \
     && addgroup --system --gid 1001 nodejs \
     && adduser --system --uid 1001 nextjs
 
