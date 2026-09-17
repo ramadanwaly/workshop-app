@@ -3,18 +3,19 @@
 # Build with output: 'standalone' (see next.config.ts).
 # Run as unprivileged node user; copy only the standalone build + static assets.
 # ============================================================================
-FROM node:22-alpine AS base
+FROM node:26.9.0-alpine3.24 AS base
 WORKDIR /app
 
-FROM node:22-alpine AS deps
+FROM node:26.9.0-alpine3.24 AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-FROM node:22-alpine AS builder
+FROM node:26.9.0-alpine3.24 AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN npm audit fix --force || true
 # متغيرات NEXT_PUBLIC_* تُحقن وقت البناء في حزمة JavaScript الثابتة —
 # يجب تمريرها كـ build-args عند البناء.
 ARG NEXT_PUBLIC_SUPABASE_URL
@@ -25,7 +26,7 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 RUN npm run build
 
-FROM node:22-alpine AS runner
+FROM node:26.9.0-alpine3.24 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apk update && apk upgrade --no-cache \
