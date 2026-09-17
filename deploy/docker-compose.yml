@@ -1,0 +1,19 @@
+services:
+  workshop-app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: workshop-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s

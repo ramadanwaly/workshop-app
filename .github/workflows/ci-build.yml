@@ -1,0 +1,91 @@
+name: CI - Test and Build
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  # فحص الكود قبل أي بناء
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run checks
+        run: npm run check
+
+  # بناء صورة Docker ورفعها - بترقم إصدار تلقائي متتالي (v1, v2, v3...)
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Generate version tag
+        id: vars
+        run: echo "tag=v${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/workshop-app:${{ steps.vars.outputs.tag }}
+            ${{ secrets.DOCKER_USERNAME }}/workshop-app:latest
+          platforms: linux/amd64
+          build-args: |
+            NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+            NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+            NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
+
+  # تنضيف Docker Hub - بيحتفظ بآخر إصدارين بس (v-tags) ويمسح الباقي
+  cleanup-old-images:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete old version tags from Docker Hub (keep last 2)
+        run: |
+          TOKEN=$(curl -s -H "Content-Type: application/json" -X POST \
+            -d '{"username": "'"${{ secrets.DOCKER_USERNAME }}"'", "password": "'"${{ secrets.DOCKER_PASSWORD }}"'"}' \
+            https://hub.docker.com/v2/users/login/ | jq -r .token)
+
+          ALL_TAGS=$(curl -s -H "Authorization: JWT $TOKEN" \
+            "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/workshop-app/tags/?page_size=100" \
+            | jq -r '.results[].name' | grep -E '^v[0-9]+$' | sort -t v -k2 -n -r)
+
+          TAGS_TO_DELETE=$(echo "$ALL_TAGS" | tail -n +3)
+
+          if [ -z "$TAGS_TO_DELETE" ]; then
+            echo "مفيش إصدارات قديمة محتاجة تُمسح."
+          fi
+
+          for tag in $TAGS_TO_DELETE; do
+            echo "بيتم مسح الإصدار: $tag"
+            curl -s -X DELETE -H "Authorization: JWT $TOKEN" \
+              "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/workshop-app/tags/$tag/"
+          done
