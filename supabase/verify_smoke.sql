@@ -18,7 +18,8 @@ END $$;
 -- 52 (surplus RPCs SECURITY DEFINER, previously misnamed 49b),
 -- 53 (return_surplus SECURITY DEFINER, previously misnamed 51b),
 -- 54 (ledger cleanup + naming guard for the b-suffix fix),
--- 55 (update correct_attendance rpc).
+-- 55 (update correct_attendance rpc),
+-- 56 (health schema check RPC).
 -- Naming rule: pure numeric version prefix, no letter suffixes (49b/51b
 -- collided with 49/51 because the migrate script keys on leading digits).
 DO $$
@@ -38,18 +39,18 @@ DECLARE
     '20260915000045','20260916000046','20260916000047',
     '20260918000048','20260918000049',
     '20260918000050','20260918000051','20260918000052','20260918000053',
-    '20260918000054','20260918000055'
+    '20260918000054','20260918000055','20260918000056'
   ];
   v_actual   text[];
 BEGIN
   v_actual := ARRAY(SELECT version FROM supabase_migrations.schema_migrations ORDER BY 1);
-  IF (SELECT count(*) FROM supabase_migrations.schema_migrations) <> 55
+  IF (SELECT count(*) FROM supabase_migrations.schema_migrations) <> 56
      OR v_actual IS DISTINCT FROM v_expected THEN
     RAISE EXCEPTION 'SMOKE FAIL: migration ledger drift (rows=% actual=% expected=% max=%)',
       (SELECT count(*) FROM supabase_migrations.schema_migrations),
       v_actual, v_expected, (SELECT max(version) FROM supabase_migrations.schema_migrations);
   END IF;
-  RAISE NOTICE 'migration ledger ok (55 / max 20260918000055)';
+  RAISE NOTICE 'migration ledger ok (56 / max 20260918000056)';
 END $$;
 
 -- 2) Treasury balance view matches a manual recompute (scenarios 1 & 18)

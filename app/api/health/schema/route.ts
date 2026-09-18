@@ -12,33 +12,28 @@ export async function GET() {
       return NextResponse.json({ status: 'error', message: 'Missing Supabase environment variables' }, { status: 500 });
     }
 
-    // Use a basic client without session persistence for the health check
     const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: { persistSession: false }
     });
 
-    // 1. Check database reachability (even if it returns RLS error, it means the DB is up)
-    const { error: settingsError } = await supabase.from('settings').select('id').limit(1);
-    
-    // FETCH_ERROR indicates the network request to Supabase failed entirely
-    if (settingsError && settingsError.code === 'FETCH_ERROR') {
-      console.error('[Health] Database unreachable:', settingsError);
+    const { data: schemaValid, error } = await supabase.rpc('rpc_health_schema_check' as never);
+
+    if (error || !schemaValid) {
+      console.error('[Health/Schema] Check failed:', error || 'Schema validation returned false');
       return NextResponse.json({ 
         status: 'degraded', 
-        database: 'unreachable',
+        schema: 'invalid_or_missing_objects',
         timestamp: new Date().toISOString()
       }, { status: 503 });
     }
 
     return NextResponse.json({ 
       status: 'ok', 
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      // إضافة: رقم المدة منذ آخر restart للمراقبة
-      uptime_seconds: Math.floor(process.uptime()),
+      schema: 'valid',
+      timestamp: new Date().toISOString()
     });
   } catch (err) {
-    console.error('[Health] Check failed:', err);
+    console.error('[Health/Schema] Check failed:', err);
     return NextResponse.json({ 
       status: 'degraded',
       timestamp: new Date().toISOString()

@@ -17,6 +17,7 @@ export const AUDIT_ACTIONS = [
   'void_allocation_line',
   'add_operating_exclusion',
   'remove_operating_exclusion',
+  'correct_attendance',
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]

@@ -316,6 +316,10 @@ Never submit secrets or real production data in Pull Requests or Issues.
 - استخدم HTTPS وخادمًا عكسيًا موثوقًا في بيئة الإنتاج.
 - راجع النسخ الاحتياطية وسياسة استعادة البيانات قبل الاعتماد على النظام.
 - اختبر الترحيلات وقواعد الصلاحيات على بيئة تجريبية أولًا.
+- **التأكد من سلامة قاعدة البيانات:** يجب تشغيل فحص الدخان (`verify_smoke.sql`) على بيئة الإنتاج للتأكد من تطبيق جميع الترحيلات (migrations) بشكل صحيح وعدم وجود ثغرات:
+  ```bash
+  psql -v ON_ERROR_STOP=1 -f supabase/verify_smoke.sql
+  ```
 
 - Use strong, environment-specific secrets.
 - Enable appropriate Supabase RLS policies.
@@ -323,6 +327,10 @@ Never submit secrets or real production data in Pull Requests or Issues.
 - Use HTTPS and a trusted reverse proxy in production.
 - Review backups and data-recovery procedures before relying on the system.
 - Test migrations and authorization policies in a staging environment first.
+- **Database Integrity Check:** You must run the smoke test (`verify_smoke.sql`) against the production database to ensure all migrations are applied correctly and no drift exists:
+  ```bash
+  psql -v ON_ERROR_STOP=1 -f supabase/verify_smoke.sql
+  ```
 
 ---
 

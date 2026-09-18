@@ -25,6 +25,7 @@ import {
   getWorkers,
   recordWorkerAdvance,
   recordWorkerAttendance,
+  correctWorkerAttendance,
   settleWorker,
   toggleWorkerStatus,
   updateWorker,
@@ -114,6 +115,101 @@ describe('recordWorkerAttendance', () => {
 
     expect(res).toEqual({ success: false, error: 'غير مصرح لك (يرجى تسجيل الدخول)' })
     expect(h.calls()).toHaveLength(0)
+  })
+})
+
+describe('correctWorkerAttendance', () => {
+  beforeEach(() => {
+    h.reset()
+    h.state.user = { id: USER_ID }
+    h.state.role = 'owner'
+  })
+
+  it('يصحح حضور عامل مع تمرير صحيح لمعاملات RPC', async () => {
+    const log = { id: 'l1', calculated_amount: 100 }
+    h.rpcOk('rpc_correct_attendance', log)
+
+    const res = await correctWorkerAttendance({
+      logId: '11111111-1111-4111-8111-111111111113',
+      newFraction: 0.5,
+      correctionReason: 'تصحيح خطأ',
+      idempotencyKey: IDEM_KEY,
+    })
+
+    expect(res).toEqual({ success: true, data: log })
+    expect(h.rpcOf('rpc_correct_attendance')[0].args).toEqual({
+      p_log_id: '11111111-1111-4111-8111-111111111113',
+      p_new_fraction: 0.5,
+      p_correction_reason: 'تصحيح خطأ',
+      p_new_project_id: null,
+    })
+    expect(h.callsOf('idempotency_keys', 'insert')[0].args[0]).toMatchObject({
+      action: 'correct_attendance',
+    })
+  })
+
+  it('يخفي بيانات created_by و voided_by إذا ظهرت', async () => {
+    const log = { id: 'l1', calculated_amount: 100, created_by: 'uid', voided_by: 'uid' }
+    h.rpcOk('rpc_correct_attendance', log)
+
+    const res = await correctWorkerAttendance({
+      logId: '11111111-1111-4111-8111-111111111113',
+      newFraction: 0.5,
+      correctionReason: 'تصحيح خطأ',
+      idempotencyKey: IDEM_KEY,
+    })
+
+    expect(res).toEqual({ success: true, data: { id: 'l1', calculated_amount: 100 } })
+  })
+
+  it('يرفض manager', async () => {
+    h.state.role = 'manager'
+    const res = await correctWorkerAttendance({
+      logId: '11111111-1111-4111-8111-111111111113',
+      newFraction: 0.5,
+      correctionReason: 'تصحيح',
+      idempotencyKey: IDEM_KEY,
+    })
+
+    expect(res.success).toBe(false)
+    expect(res.error).toBe('صلاحية مرفوضة: هذا الإجراء مخصص لمالك الورشة فقط')
+  })
+
+  it('يرفض reason أقل من 3 أحرف', async () => {
+    const res = await correctWorkerAttendance({
+      logId: '11111111-1111-4111-8111-111111111113',
+      newFraction: 0.5,
+      correctionReason: 'خط',
+      idempotencyKey: IDEM_KEY,
+    })
+
+    expect(res.success).toBe(false)
+    expect(res.error).toContain('سبب التصحيح')
+  })
+
+  it('يرفض fraction غير صالحة', async () => {
+    const res = await correctWorkerAttendance({
+      logId: '11111111-1111-4111-8111-111111111113',
+      newFraction: 0.75 as never,
+      correctionReason: 'تصحيح خطأ',
+      idempotencyKey: IDEM_KEY,
+    })
+
+    expect(res.success).toBe(false)
+    expect(res.error).toBe('نسبة العمل يجب أن تكون 0.25 أو 0.50 أو 1.00')
+  })
+
+  it('يرفض المستخدم غير المسجل', async () => {
+    h.state.user = null
+    const res = await correctWorkerAttendance({
+      logId: '11111111-1111-4111-8111-111111111113',
+      newFraction: 0.5,
+      correctionReason: 'تصحيح خطأ',
+      idempotencyKey: IDEM_KEY,
+    })
+
+    expect(res.success).toBe(false)
+    expect(res.error).toBe('غير مصرح لك (يرجى تسجيل الدخول)')
   })
 })
 

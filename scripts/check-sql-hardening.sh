@@ -29,7 +29,8 @@ echo "[sql-hardening] rule 1: no GRANT to anon/PUBLIC..."
 #       project_id) and only completed projects that have at least one photo.
 ALLOW_ANON_GRANT='GRANT EXECUTE ON FUNCTION public\.increment_rate_limit\(TEXT, INT, INT\) TO anon'
 ALLOW_ANON_VIEW='GRANT SELECT ON public\.v_portfolio_gallery_public TO anon'
-if grep -rhn --include='*.sql' -E '^[[:space:]]*GRANT[[:space:]]' "$MIGR" | strip_comments | grep -E 'TO[[:space:]]+(PUBLIC|anon)([^_a-zA-Z]|$)' | grep -v -E "$ALLOW_ANON_GRANT" | grep -v -E "$ALLOW_ANON_VIEW" ; then
+ALLOW_ANON_SCHEMA_CHECK='GRANT EXECUTE ON FUNCTION public\.rpc_health_schema_check\(\) TO anon'
+if grep -rhn --include='*.sql' -E '^[[:space:]]*GRANT[[:space:]]' "$MIGR" | strip_comments | grep -E 'TO[[:space:]]+(PUBLIC|anon)([^_a-zA-Z]|$)' | grep -v -E "$ALLOW_ANON_GRANT" | grep -v -E "$ALLOW_ANON_VIEW" | grep -v -E "$ALLOW_ANON_SCHEMA_CHECK" ; then
   echo "[sql-hardening] FAIL: found GRANT ... TO anon/PUBLIC (rule 1)" >&2
   FAIL=1
 else
@@ -37,10 +38,8 @@ else
 fi
 
 echo "[sql-hardening] rule 2: no TO anon/PUBLIC recipient outside REVOKE..."
-# Allowlist: the same two deliberate anon grants as rule 1 (rate-limit
-# function + the single public gallery view). Any other TO anon/PUBLIC
-# recipient — including any CREATE POLICY ... TO anon — still fails.
-if grep -rhn --include='*.sql' -E 'TO[[:space:]]+(PUBLIC|anon)([^_a-zA-Z]|$)' "$MIGR" | strip_comments | grep -v -E '^[0-9]+:[[:space:]]*REVOKE' | grep -v -E "$ALLOW_ANON_GRANT" | grep -v -E "$ALLOW_ANON_VIEW" ; then
+# Allowlist: the same deliberate anon grants as rule 1.
+if grep -rhn --include='*.sql' -E 'TO[[:space:]]+(PUBLIC|anon)([^_a-zA-Z]|$)' "$MIGR" | strip_comments | grep -v -E '^[0-9]+:[[:space:]]*REVOKE' | grep -v -E "$ALLOW_ANON_GRANT" | grep -v -E "$ALLOW_ANON_VIEW" | grep -v -E "$ALLOW_ANON_SCHEMA_CHECK" ; then
   echo "[sql-hardening] FAIL: found privilege recipient anon/PUBLIC outside REVOKE (rule 2)" >&2
   FAIL=1
 else
