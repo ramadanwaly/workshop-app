@@ -45,18 +45,20 @@ DECLARE
     '20260911000033','20260911000034','20260911000035','20260911000036',
     '20260911000037','20260911000038','20260911000039','20260911000040',
     '20260911000041','20260911000042','20260915000043','20260915000044',
-    '20260915000045','20260916000046','20260916000047'
+    '20260915000045','20260916000046','20260916000047',
+    '20260918000048','20260918000049','20260918000049b',
+    '20260918000050','20260918000051','20260918000051b'
   ];
   v_actual   text[];
 BEGIN
   v_actual := ARRAY(SELECT version FROM supabase_migrations.schema_migrations ORDER BY 1);
-  IF (SELECT count(*) FROM supabase_migrations.schema_migrations) <> 47
+  IF (SELECT count(*) FROM supabase_migrations.schema_migrations) <> 53
      OR v_actual IS DISTINCT FROM v_expected THEN
     RAISE EXCEPTION 'SMOKE FAIL: migration ledger drift (rows=% actual=% expected=% max=%)',
       (SELECT count(*) FROM supabase_migrations.schema_migrations),
       v_actual, v_expected, (SELECT max(version) FROM supabase_migrations.schema_migrations);
   END IF;
-  RAISE NOTICE 'migration ledger ok (47 / max 20260916000047)';
+  RAISE NOTICE 'migration ledger ok (53 / max 20260918000051b)';
 END $$;
 
 -- 2) Treasury balance view matches a manual recompute (scenarios 1 & 18)

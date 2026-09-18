@@ -46,7 +46,6 @@ export async function injectOwnerFunding(
         const rl = await checkRateLimit(supabase, `w:inject_owner_funding:${auth.userId}`, 30)
         if (!rl.allowed) return { success: false, error: rateLimitMessage(rl.retryAfter) }
 
-        // @ts-expect-error RPC missing from types
         const { data: transaction, error: rpcError } = await supabase.rpc('rpc_record_treasury_transaction', {
             p_idempotency_key: idempotencyKey,
             p_action: 'inject_owner_funding',
@@ -117,7 +116,6 @@ export async function recordExpense(
         const rl = await checkRateLimit(supabase, `w:record_expense:${auth.userId}`, 30)
         if (!rl.allowed) return { success: false, error: rateLimitMessage(rl.retryAfter) }
 
-        // @ts-expect-error RPC missing from types
         const { data: transaction, error: rpcError } = await supabase.rpc('rpc_record_treasury_transaction', {
             p_idempotency_key: idempotencyKey,
             p_action: 'record_expense',
@@ -172,7 +170,6 @@ export async function voidTransaction(
         const rl = await checkRateLimit(supabase, `w:void_transaction:${auth.userId}`, 30)
         if (!rl.allowed) return { success: false, error: rateLimitMessage(rl.retryAfter) }
 
-        // @ts-expect-error RPC missing from types
         const { data: updatedTx, error: rpcError } = await supabase.rpc('rpc_void_treasury_transaction', {
             p_idempotency_key: idempotencyKey,
             p_action: 'void_transaction',

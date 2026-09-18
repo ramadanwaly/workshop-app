@@ -3,6 +3,9 @@ name: CI - Test and Build
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+    types: [opened, synchronize, reopened]
 
 jobs:
   # فحص الكود قبل أي بناء
@@ -26,8 +29,10 @@ jobs:
         run: npm run check
 
   # بناء صورة Docker ورفعها - بترقم إصدار تلقائي متتالي (v1, v2, v3...)
+  # يعمل فقط عند push إلى main، لا عند Pull Requests
   build-and-push:
     needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
@@ -86,6 +91,12 @@ jobs:
 
           for tag in $TAGS_TO_DELETE; do
             echo "بيتم مسح الإصدار: $tag"
-            curl -s -X DELETE -H "Authorization: JWT $TOKEN" \
-              "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/workshop-app/tags/$tag/"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+              -H "Authorization: JWT $TOKEN" \
+              "https://hub.docker.com/v2/repositories/${{ secrets.DOCKER_USERNAME }}/workshop-app/tags/$tag/")
+            if [ "$HTTP_CODE" != "204" ] && [ "$HTTP_CODE" != "200" ]; then
+              echo "⚠️ فشل حذف الإصدار $tag — كود الاستجابة: $HTTP_CODE"
+              exit 1
+            fi
+            echo "✓ تم حذف $tag بنجاح (HTTP $HTTP_CODE)"
           done

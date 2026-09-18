@@ -1091,6 +1091,29 @@ export type Database = {
         Args: { p_bucket: string; p_limit: number; p_window_seconds?: number }
         Returns: Json
       }
+      rpc_record_treasury_transaction: {
+        Args: {
+          p_idempotency_key: string
+          p_action: string
+          p_transaction_type: string
+          p_category: string
+          p_subcategory?: string | null
+          p_amount: number
+          p_project_id?: string | null
+          p_is_direct_owner: boolean
+          p_description?: string | null
+        }
+        Returns: Json
+      }
+      rpc_void_treasury_transaction: {
+        Args: {
+          p_idempotency_key: string
+          p_action: string
+          p_transaction_id: string
+          p_reason: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
