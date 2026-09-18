@@ -63,7 +63,9 @@ export async function signInWithPassword(input: {
   const rl = await checkRateLimit(
     supabase,
     await clientIpBucket('login', parsed.data.email),
-    10
+    10,
+    60,
+    true
   )
   if (!rl.allowed) {
     return { success: false, error: rateLimitMessage(rl.retryAfter) }
@@ -101,7 +103,9 @@ export async function signInWithOtp(input: { email: string }): Promise<AuthResul
   const rl = await checkRateLimit(
     supabase,
     await clientIpBucket('otp', parsed.data.email),
-    5
+    5,
+    60,
+    true
   )
   if (!rl.allowed) {
     return { success: false, error: rateLimitMessage(rl.retryAfter) }
@@ -142,7 +146,9 @@ export async function requestPasswordReset(input: { email: string }): Promise<Au
   const rl = await checkRateLimit(
     supabase,
     await clientIpBucket('pwdreset', parsed.data.email),
-    5
+    5,
+    60,
+    true
   )
   if (!rl.allowed) {
     return { success: false, error: rateLimitMessage(rl.retryAfter) }
@@ -196,7 +202,7 @@ export async function updatePassword(input: { password: string }): Promise<AuthR
     }
   }
 
-  const rl = await checkRateLimit(supabase, `pwdupdate:${user.id}`, 10)
+  const rl = await checkRateLimit(supabase, `pwdupdate:${user.id}`, 10, 60, true)
   if (!rl.allowed) {
     return { success: false, error: rateLimitMessage(rl.retryAfter) }
   }

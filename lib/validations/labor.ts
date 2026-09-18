@@ -33,6 +33,18 @@ export const settlementSchema = z.object({
     idempotencyKey: idempotencyKeyField,
 })
 
+export const correctAttendanceSchema = z.object({
+    logId: z.string().uuid('معرف السجل غير صالح'),
+    newFraction: z.union(
+        [z.literal(0.25), z.literal(0.5), z.literal(1)],
+        { error: 'نسبة العمل يجب أن تكون 0.25 أو 0.50 أو 1.00' }
+    ),
+    newProjectId: z.string().uuid('معرف المشروع غير صالح').optional().nullable(),
+    correctionReason: z.string().min(3, 'يجب كتابة سبب التصحيح (3 أحرف على الأقل)').max(1000, 'السبب طويل جداً'),
+    idempotencyKey: idempotencyKeyField,
+})
+
 export type AttendanceInput = z.infer<typeof attendanceSchema>
 export type AdvanceInput = z.infer<typeof advanceSchema>
 export type SettlementInput = z.infer<typeof settlementSchema>
+export type CorrectAttendanceInput = z.infer<typeof correctAttendanceSchema>

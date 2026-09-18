@@ -13,9 +13,11 @@ import {
   attendanceSchema,
   advanceSchema,
   settlementSchema,
+  correctAttendanceSchema,
   type AttendanceInput,
   type AdvanceInput,
   type SettlementInput,
+  type CorrectAttendanceInput,
 } from '@/lib/validations/labor'
 import {
   createWorkerSchema,
@@ -131,6 +133,58 @@ export async function recordWorkerAttendance(
     return { success: false, error: maskAndLogError('record_attendance', err) }
   }
 }
+
+// ----------------------------------------------------------------------------
+// تصحيح حضور عامل - للمالك فقط (تحديث النسبة أو المشروع مع سبب مسجل)
+// ----------------------------------------------------------------------------
+export async function correctWorkerAttendance(
+  input: CorrectAttendanceInput
+): Promise<ActionResult> {
+  try {
+    const auth = await requireOwner()
+    if (!auth.userId) return { success: false, error: auth.error ?? 'غير مصرح لك' }
+    const supabase = auth.supabase
+
+    const parsed = correctAttendanceSchema.safeParse(input)
+    if (!parsed.success) return { success: false, error: parsed.error.issues[0].message }
+
+    const { logId, newFraction, newProjectId, correctionReason, idempotencyKey } = parsed.data
+
+    const rl = await checkRateLimit(supabase, `w:correct_attendance:${auth.userId}`, 30)
+    if (!rl.allowed) return { success: false, error: rateLimitMessage(rl.retryAfter) }
+    const idempotency = await checkAndLockIdempotency(
+      supabase,
+      idempotencyKey,
+      auth.userId,
+      'correct_attendance'
+    )
+    if (idempotency.alreadyCompleted) {
+      return { success: true, data: sanitizeDto(idempotency.cachedData) }
+    }
+
+    const { data, error } = await supabase.rpc('rpc_correct_attendance', {
+      p_log_id: logId,
+      p_new_fraction: newFraction,
+      p_new_project_id: newProjectId || null,
+      p_correction_reason: correctionReason,
+    })
+
+    if (error) return { success: false, error: routeActionError('correct_attendance', error) }
+
+    revalidatePath('/', 'layout')
+    try {
+      await markIdempotencyCompleted(supabase, idempotencyKey, auth.userId, 'correct_attendance', data)
+    } catch (err: unknown) {
+      const { logError } = await import('@/lib/logger')
+      logError('idempotency_mark_failed', err)
+      return { success: true, data: sanitizeDto(data), error: 'تمت العملية بنجاح (مع تحذير في مفتاح التكرار)' }
+    }
+    return { success: true, data: sanitizeDto(data) }
+  } catch (err: unknown) {
+    return { success: false, error: maskAndLogError('correct_attendance', err) }
+  }
+}
+
 
 // ----------------------------------------------------------------------------
 // 2. إصدار سلفة لعامل - للمالك فقط (حركة مالية: خزينة OUT + التزام على العامل)

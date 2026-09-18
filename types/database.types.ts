@@ -995,6 +995,15 @@ export type Database = {
       }
     }
     Functions: {
+      rpc_correct_attendance: {
+        Args: {
+          p_log_id: string
+          p_new_fraction: number
+          p_new_project_id?: string | null
+          p_correction_reason?: string | null
+        }
+        Returns: Json
+      }
       rpc_close_subcontract_order: {
         Args: { p_order_id: string; p_status?: string; p_reason?: string }
         Returns: Json

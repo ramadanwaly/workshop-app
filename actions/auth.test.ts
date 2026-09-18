@@ -44,6 +44,14 @@ vi.mock('next/headers', () => ({
   }),
 }))
 
+vi.mock('@/lib/rate-limit', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/lib/rate-limit')>()
+  return {
+    ...mod,
+    checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, retryAfter: 0 }),
+  }
+})
+
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))

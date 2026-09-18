@@ -26,7 +26,8 @@ export async function checkRateLimit(
   supabase: SupabaseClient,
   bucket: string,
   limit: number,
-  windowSec = 60
+  windowSec = 60,
+  failClosed = false
 ): Promise<RateLimitResult> {
   try {
     const { data, error } = await supabase.rpc('increment_rate_limit', {
@@ -35,11 +36,11 @@ export async function checkRateLimit(
       p_window_seconds: windowSec,
     })
     if (error || !data || typeof data !== 'object') {
-      return { allowed: true, retryAfter: 0 }
+      return { allowed: !failClosed, retryAfter: failClosed ? windowSec : 0 }
     }
     const d = data as { allowed?: unknown; retry_after?: unknown }
     if (typeof d.allowed !== 'boolean') {
-      return { allowed: true, retryAfter: 0 }
+      return { allowed: !failClosed, retryAfter: failClosed ? windowSec : 0 }
     }
     return {
       allowed: d.allowed,
@@ -47,7 +48,7 @@ export async function checkRateLimit(
     }
   } catch (err) {
     logWarn('rate_limit', { bucket, err: err instanceof Error ? err.message : err })
-    return { allowed: true, retryAfter: 0 }
+    return { allowed: !failClosed, retryAfter: failClosed ? windowSec : 0 }
   }
 }
 
