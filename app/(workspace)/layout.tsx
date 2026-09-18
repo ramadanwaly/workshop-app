@@ -33,7 +33,7 @@ export default async function WorkspaceLayout({
         <WorkspaceHeader />
         {children}
         <AppNav userRole={userRole} />
-        <MobileActionBarData />
+        <MobileActionBarData userRole={userRole} />
       </div>
     </ToastProvider>
   )

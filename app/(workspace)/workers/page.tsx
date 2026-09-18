@@ -6,8 +6,7 @@ import { WorkerListActions } from '@/components/workers/worker-list-actions'
 import { Pagination } from '@/components/ui/pagination'
 import { getWorkers } from '@/actions/labor'
 import Link from 'next/link'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { DebouncedSearchInput } from '@/components/ui/debounced-search-input'
 
 type WorkersPageProps = {
   searchParams: Promise<{ q?: string; page?: string }>
@@ -33,36 +32,13 @@ export default async function WorkersPage(props: WorkersPageProps) {
           </Suspense>
         </header>
 
-        <form
-          method="get"
-          action="/workers"
-          className="mb-6 flex flex-col gap-3 rounded-md border border-border bg-card p-3 sm:flex-row sm:items-center"
-        >
-          <Input
-            type="search"
-            name="q"
-            defaultValue={query ?? ''}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center rounded-md border border-border bg-card p-3">
+          <DebouncedSearchInput
+            initialValue={query ?? ''}
             placeholder="بحث باسم العامل..."
-            maxLength={100}
-            className="flex-1"
+            paramName="q"
           />
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              className="flex-1 sm:flex-none"
-            >
-              بحث
-            </Button>
-            {query && (
-              <Link
-                href="/workers"
-                className="inline-flex h-10 flex-1 items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 font-bold transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:flex-none"
-              >
-                مسح
-              </Link>
-            )}
-          </div>
-        </form>
+        </div>
 
         <Suspense key={`${query ?? ''}-${pageNum ?? '1'}`} fallback={<WorkersSkeleton />}>
           <WorkersContent query={query} pageNum={pageNum} />

@@ -205,6 +205,25 @@ function GalleryIcon() {
   )
 }
 
+function MenuIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5 shrink-0"
+      aria-hidden="true"
+    >
+      <line x1="4" y1="12" x2="20" y2="12" />
+      <line x1="4" y1="6" x2="20" y2="6" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+    </svg>
+  )
+}
+
 const BASE_NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'لوحة المعلومات', icon: <HomeIcon /> },
   { href: '/projects', label: 'المشاريع', icon: <FolderIcon /> },
@@ -256,6 +275,7 @@ export function AppNav({ userRole }: AppNavProps) {
   const pathname = usePathname()
   const [fetchedRole, setFetchedRole] = useState<string | undefined>(undefined)
   const role = userRole ?? fetchedRole
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     if (userRole !== undefined) return
@@ -290,10 +310,11 @@ export function AppNav({ userRole }: AppNavProps) {
     navItems.push({ href: '/settings', label: 'الإعدادات', icon: <SettingsIcon /> })
   }
 
-  const gridColsClass = 
-    navItems.length === 9 ? 'grid-cols-10' :
-    navItems.length === 8 ? 'grid-cols-9' :
-    navItems.length === 7 ? 'grid-cols-8' : 'grid-cols-7'
+  // Mobile Bottom Nav specific items
+  const mobilePrimaryPaths = ['/dashboard', '/projects', '/treasury']
+  const mobilePrimaryItems = navItems.filter((item) => mobilePrimaryPaths.includes(item.href))
+  // The rest go to the drawer
+  const mobileSecondaryItems = navItems.filter((item) => !mobilePrimaryPaths.includes(item.href))
 
   return (
     <>
@@ -340,12 +361,81 @@ export function AppNav({ userRole }: AppNavProps) {
         </div>
       </aside>
 
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Drawer Menu */}
+      <div 
+        className={`fixed inset-y-0 start-0 z-50 w-64 transform flex-col bg-primary transition-transform duration-300 ease-in-out lg:hidden ${
+          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        style={{ direction: 'rtl' }}
+      >
+        <div className="flex items-center justify-between border-b border-background/10 px-4 py-4">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/logo.jpg"
+              alt="شعار ورشة رمضان والي للنجارة"
+              width={36}
+              height={36}
+              className="rounded-md ring-1 ring-accent/40"
+            />
+            <p className="text-sm font-bold text-background">ورشة رمضان والي</p>
+          </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-md text-background/70 hover:bg-background/10 hover:text-background"
+            aria-label="إغلاق القائمة"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <nav aria-label="تنقل إضافي" className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          {mobileSecondaryItems.map((item) => (
+            <div key={item.href} onClick={() => setIsMobileMenuOpen(false)}>
+              <NavItemLink
+                item={item}
+                variant="sidebar"
+                active={isActive(pathname, item.href)}
+              />
+            </div>
+          ))}
+        </nav>
+        
+        <div className="border-t border-background/10 p-4">
+          <form
+            action={async () => {
+              await signOut()
+            }}
+          >
+            <button
+              type="submit"
+              className="flex w-full items-center gap-3 rounded-md px-4 py-3 text-sm font-medium text-background/75 transition hover:bg-danger/30 hover:text-background"
+            >
+              <LogOutIcon />
+              تسجيل الخروج
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Nav */}
       <nav
         aria-label="التنقل الرئيسي"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-accent/20 bg-primary lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-accent/20 bg-primary lg:hidden"
       >
-        <div className={`grid ${gridColsClass} gap-0.5 px-0.5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1`}>
-          {navItems.map((item) => (
+        <div className="grid grid-cols-4 gap-0.5 px-0.5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pt-1">
+          {mobilePrimaryItems.map((item) => (
             <NavItemLink
               key={item.href}
               item={item}
@@ -353,21 +443,16 @@ export function AppNav({ userRole }: AppNavProps) {
               active={isActive(pathname, item.href)}
             />
           ))}
-          <form
-            action={async () => {
-              await signOut()
-            }}
-            className="flex min-h-14 flex-col items-center justify-center"
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="القائمة"
+            aria-expanded={isMobileMenuOpen}
+            className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-md text-[10px] sm:text-[11px] font-medium text-background/75 transition hover:bg-background/10 hover:text-background"
           >
-            <button
-              type="submit"
-              aria-label="تسجيل الخروج"
-              className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-md text-[10px] sm:text-[11px] font-medium text-background/75 transition hover:bg-danger/30 hover:text-background"
-            >
-              <LogOutIcon />
-              خروج
-            </button>
-          </form>
+            <MenuIcon />
+            <span className="truncate">المزيد</span>
+          </button>
         </div>
       </nav>
     </>

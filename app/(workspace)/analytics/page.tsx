@@ -9,6 +9,7 @@ import {
   ProjectProfitabilityChart,
   WorkerPerformanceChart
 } from '@/components/analytics/charts'
+import { formatCurrency } from '@/lib/format'
 
 export const metadata = {
   title: 'التحليلات والتقارير | إدارة الورشة',
@@ -37,25 +38,50 @@ async function AnalyticsContent() {
   const projectsData = Array.isArray(projectsRes.data) ? projectsRes.data : []
   const workersData = Array.isArray(workersRes.data) ? workersRes.data : []
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const totalProjectsProfit = projectsData.reduce((acc: number, p: any) => acc + (Number(p.net_profit) || 0), 0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const totalProjectsRevenue = projectsData.reduce((acc: number, p: any) => acc + (Number(p.total_revenue) || 0), 0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const totalWorkerWages = workersData.reduce((acc: number, w: any) => acc + (Number(w.total_wages) || 0), 0)
+
   return (
     <div className="flex flex-col gap-8">
-      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-ink">الإيرادات والمصروفات عبر الوقت</h2>
-        <p className="mt-1 text-sm text-secondary">تحليل شهري لتدفقات الخزينة (الإيرادات مقابل المصروفات).</p>
-        <TreasuryChart data={treasuryData} />
-      </section>
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="text-sm font-medium text-secondary">إجمالي أرباح المشاريع</h3>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-success">{formatCurrency(totalProjectsProfit)}</p>
+        </div>
+        <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="text-sm font-medium text-secondary">إجمالي إيرادات المشاريع</h3>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-ink">{formatCurrency(totalProjectsRevenue)}</p>
+        </div>
+        <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm sm:col-span-2 lg:col-span-1">
+          <h3 className="text-sm font-medium text-secondary">إجمالي الأجور المحسوبة للعمال</h3>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-primary">{formatCurrency(totalWorkerWages)}</p>
+        </div>
+      </div>
 
-      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-ink">تكلفة وربحية المشاريع</h2>
-        <p className="mt-1 text-sm text-secondary">مقارنة إجمالي الإيرادات بالتكلفة المقدرة وصافي الربح لكل مشروع.</p>
-        <ProjectProfitabilityChart data={projectsData} />
-      </section>
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+        <section className="rounded-xl border border-border bg-card p-6 shadow-sm xl:col-span-2">
+          <h2 className="text-lg font-bold text-ink">الإيرادات والمصروفات عبر الوقت</h2>
+          <p className="mt-1 text-sm text-secondary">تحليل شهري لتدفقات الخزينة (الإيرادات مقابل المصروفات).</p>
+          <TreasuryChart data={treasuryData} />
+        </section>
 
-      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-ink">أداء العمال الشهري</h2>
-        <p className="mt-1 text-sm text-secondary">تحليل لأيام العمل، الأجور المحسوبة، والسلف المسحوبة لكل عامل شهرياً.</p>
-        <WorkerPerformanceChart data={workersData} />
-      </section>
+        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-ink">تكلفة وربحية المشاريع</h2>
+          <p className="mt-1 text-sm text-secondary">مقارنة إجمالي الإيرادات بالتكلفة المقدرة وصافي الربح لكل مشروع.</p>
+          <ProjectProfitabilityChart data={projectsData} />
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="text-lg font-bold text-ink">أداء العمال الشهري</h2>
+          <p className="mt-1 text-sm text-secondary">تحليل لأيام العمل، الأجور المحسوبة، والسلف المسحوبة لكل عامل شهرياً.</p>
+          <WorkerPerformanceChart data={workersData} />
+        </section>
+      </div>
     </div>
   )
 }
@@ -63,9 +89,16 @@ async function AnalyticsContent() {
 function AnalyticsSkeleton() {
   return (
     <div className="flex flex-col gap-8">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-[450px] animate-pulse rounded-xl border border-border bg-card p-6"></div>
-      ))}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-28 animate-pulse rounded-xl border border-border bg-card p-6"></div>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+        <div className="h-[450px] animate-pulse rounded-xl border border-border bg-card p-6 xl:col-span-2"></div>
+        <div className="h-[450px] animate-pulse rounded-xl border border-border bg-card p-6"></div>
+        <div className="h-[450px] animate-pulse rounded-xl border border-border bg-card p-6"></div>
+      </div>
     </div>
   )
 }

@@ -4,8 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { StatusBadge } from '@/components/layout/status-badge'
 import { NewProjectButton } from '@/components/projects/new-project-button'
 import { formatCurrency } from '@/lib/format'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { DebouncedSearchInput } from '@/components/ui/debounced-search-input'
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
   active: { label: 'نشط', cls: 'border-success/50 bg-success/10 text-success' },
@@ -42,40 +41,13 @@ export default async function ProjectsPage(props: ProjectsPageProps) {
           <NewProjectButton />
         </header>
 
-        <form
-          method="get"
-          action="/projects"
-          className="mb-6 flex flex-col gap-3 rounded-md border border-border bg-card p-3 sm:flex-row sm:items-center"
-        >
-          <div className="flex-1">
-            <label htmlFor="search-project" className="sr-only">بحث باسم المشروع</label>
-            <Input
-              id="search-project"
-              type="search"
-              name="q"
-              defaultValue={query ?? ''}
-              placeholder="بحث باسم المشروع..."
-              maxLength={100}
-              className="w-full"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              className="flex-1 sm:flex-none"
-            >
-              بحث
-            </Button>
-            {query && (
-              <Link
-                href="/projects"
-                className="inline-flex h-10 flex-1 items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 font-bold transition-colors hover:bg-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:flex-none"
-              >
-                مسح
-              </Link>
-            )}
-          </div>
-        </form>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center rounded-md border border-border bg-card p-3">
+          <DebouncedSearchInput
+            initialValue={query ?? ''}
+            placeholder="بحث باسم المشروع..."
+            paramName="q"
+          />
+        </div>
 
         <Suspense key={query ?? ''} fallback={<ProjectsSkeleton />}>
           <ProjectsList query={query} />

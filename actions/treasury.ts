@@ -261,6 +261,7 @@ const treasuryLedgerSchema = pageSchema.extend({
     .trim()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'صيغة التاريخ غير صالحة (YYYY-MM-DD)')
     .optional(),
+  type: z.enum(['in', 'out'], { error: 'نوع الحركة غير صالح' }).optional(),
 })
 
 export async function getTreasuryLedger(rawOpts: {
@@ -270,10 +271,11 @@ export async function getTreasuryLedger(rawOpts: {
   category?: unknown
   from?: unknown
   to?: unknown
+  type?: unknown
 } = {}) {
   const parsed = treasuryLedgerSchema.safeParse(rawOpts)
   if (!parsed.success) throw new Error(parsed.error.issues[0].message)
-  const { page, perPage, q, category, from, to } = parsed.data
+  const { page, perPage, q, category, from, to, type } = parsed.data
   const fromIdx = (page - 1) * perPage
   const toIdx = fromIdx + perPage - 1
   // تصفية مشتركة لاستعلام الصفوف واستعلام العدد (any لتجاوز تضييق أنواع الباني)
@@ -283,6 +285,7 @@ export async function getTreasuryLedger(rawOpts: {
     let filtered: any = query
     if (q) filtered = filtered.ilike('description', `%${escapeIlike(q)}%`)
     if (category) filtered = filtered.eq('category', category)
+    if (type) filtered = filtered.eq('transaction_type', type)
     if (from) filtered = filtered.gte('created_at', from)
     if (to) filtered = filtered.lt('created_at', `${to}T23:59:59.999Z`)
     return filtered

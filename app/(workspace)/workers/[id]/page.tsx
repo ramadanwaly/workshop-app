@@ -2,17 +2,12 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { StatusBadge } from '@/components/layout/status-badge'
 import { WorkerActionBar } from '@/components/workers/worker-action-bar'
-import { formatCurrency, formatDate } from '@/lib/format'
+import { WorkerTransactionsTab } from '@/components/workers/worker-transactions-tab'
+import { formatCurrency } from '@/lib/format'
 import { getWorkerDetail } from '@/actions/labor'
 
 type WorkerDetailPageProps = {
   params: Promise<{ id: string }>
-}
-
-const FRACTION_LABELS: Record<number, string> = {
-  0.25: 'ربع يوم',
-  0.5: 'نصف يوم',
-  1: 'يوم كامل',
 }
 
 export default async function WorkerDetailPage({ params }: WorkerDetailPageProps) {
@@ -120,88 +115,8 @@ export default async function WorkerDetailPage({ params }: WorkerDetailPageProps
           </div>
         </section>
 
-        {/* جدول آخر الحضور */}
-        <section className="mb-6">
-          <h2 className="mb-3 text-lg font-bold text-foreground">آخر سجلات الحضور</h2>
-          {(!logs || logs.length === 0) ? (
-            <div className="rounded-md border border-dashed border-border bg-card p-10 text-center">
-              <p className="text-muted-foreground">لا توجد سجلات حضور بعد.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-md border border-border bg-card">
-              <table className="w-full text-right text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">التاريخ</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">المشروع</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">النسبة</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">المبلغ</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-muted/50">
-                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-foreground">{formatDate(log.log_date)}</td>
-                      <td className="px-4 py-3 text-foreground">
-                        {(log as { projects?: { name: string } | null }).projects?.name ?? '—'}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">{FRACTION_LABELS[log.fraction] ?? log.fraction}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-semibold tabular-nums text-primary">
-                        {formatCurrency(log.calculated_amount)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge
-                          label={log.is_settled ? 'مسدّد' : 'غير مسدّد'}
-                          className={
-                            log.is_settled
-                              ? 'border-success/50 bg-success/10 text-success'
-                              : 'border-warning/50 bg-warning/10 text-warning-foreground'
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* جدول السلف غير المسددة */}
-        <section>
-          <h2 className="mb-3 text-lg font-bold text-foreground">السلف غير المسددة</h2>
-          {(!advances || advances.length === 0) ? (
-            <div className="rounded-md border border-dashed border-border bg-card p-10 text-center">
-              <p className="text-muted-foreground">لا توجد سلف غير مسددة.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-md border border-border bg-card">
-              <table className="w-full text-right text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/50">
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">التاريخ</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">المبلغ</th>
-                    <th className="px-4 py-3 font-semibold text-muted-foreground">ملاحظات</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {advances.map((adv) => (
-                    <tr key={adv.id} className="hover:bg-muted/50">
-                      <td className="whitespace-nowrap px-4 py-3 tabular-nums text-foreground">
-                        {formatDate(adv.advance_date)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 font-semibold tabular-nums text-primary">
-                        {formatCurrency(adv.amount)}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{adv.notes ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+        {/* سجلات الحضور والسلف (محرك بحث محلي) */}
+        <WorkerTransactionsTab logs={logs || []} advances={advances || []} />
       </div>
     </main>
   )

@@ -27,7 +27,7 @@ export function TreasuryChart({ data }: { data: TreasuryData[] }) {
     const chartData = [...formattedData].reverse()
 
     return (
-        <div className="mt-6 h-[400px] w-full" dir="ltr">
+        <div className="mt-4 h-[350px] w-full" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--brand-border)" />
@@ -42,8 +42,8 @@ export function TreasuryChart({ data }: { data: TreasuryData[] }) {
                         contentStyle={{ backgroundColor: 'var(--brand-card)', borderColor: 'var(--brand-border)', borderRadius: '0.375rem', color: 'var(--brand-card-foreground)' }}
                     />
                     <Legend />
-                    <Bar dataKey="total_in" name="الإيرادات" fill="var(--brand-success)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="total_out" name="المصروفات" fill="var(--brand-danger)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total_in" name="الإيرادات" fill="var(--brand-success)" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                    <Bar dataKey="total_out" name="المصروفات" fill="var(--brand-danger)" radius={[4, 4, 0, 0]} maxBarSize={50} />
                 </BarChart>
             </ResponsiveContainer>
         </div>
@@ -53,7 +53,7 @@ export function TreasuryChart({ data }: { data: TreasuryData[] }) {
 type ProjectProfitabilityData = { project_name: string; total_revenue: number; estimated_total_cost: number; net_profit: number; [key: string]: unknown }
 export function ProjectProfitabilityChart({ data }: { data: ProjectProfitabilityData[] }) {
     return (
-        <div className="mt-6 h-[400px] w-full" dir="ltr">
+        <div className="mt-4 h-[350px] w-full" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={data} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--brand-border)" />
@@ -68,8 +68,8 @@ export function ProjectProfitabilityChart({ data }: { data: ProjectProfitability
                         contentStyle={{ backgroundColor: 'var(--brand-card)', borderColor: 'var(--brand-border)', borderRadius: '0.375rem', color: 'var(--brand-card-foreground)' }}
                     />
                     <Legend />
-                    <Bar dataKey="total_revenue" name="إجمالي الإيرادات" fill="var(--brand-success)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="estimated_total_cost" name="التكلفة المقدرة" fill="var(--brand-danger)" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total_revenue" name="إجمالي الإيرادات" fill="var(--brand-success)" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                    <Bar dataKey="estimated_total_cost" name="التكلفة المقدرة" fill="var(--brand-danger)" radius={[4, 4, 0, 0]} maxBarSize={50} />
                     <Line type="monotone" dataKey="net_profit" name="صافي الربح" stroke="var(--brand-accent)" strokeWidth={3} dot={{ r: 6, fill: 'var(--brand-accent)' }} />
                 </ComposedChart>
             </ResponsiveContainer>
@@ -81,7 +81,7 @@ type WorkerPerformanceData = { worker_name: string; month: string; total_days: n
 export function WorkerPerformanceChart({ data }: { data: WorkerPerformanceData[] }) {
     const formattedData = data.map(item => ({
         ...item,
-        displayName: `${item.worker_name} (${new Date(item.month).toLocaleDateString('ar-EG', { month: 'short' })})`
+        displayName: `${item.worker_name} (${new Date(item.month).toLocaleDateString('ar-EG', { month: 'short', year: 'numeric' })})`
     }))
 
     
@@ -89,7 +89,7 @@ export function WorkerPerformanceChart({ data }: { data: WorkerPerformanceData[]
     const chartData = [...formattedData].reverse()
 
     return (
-        <div className="mt-6 h-[400px] w-full" dir="ltr">
+        <div className="mt-4 h-[350px] w-full" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--brand-border)" />
@@ -111,8 +111,8 @@ export function WorkerPerformanceChart({ data }: { data: WorkerPerformanceData[]
                         contentStyle={{ backgroundColor: 'var(--brand-card)', borderColor: 'var(--brand-border)', borderRadius: '0.375rem', color: 'var(--brand-card-foreground)' }}
                     />
                     <Legend />
-                    <Bar yAxisId="left" dataKey="total_wages" name="الأجور المحسوبة" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} />
-                    <Bar yAxisId="left" dataKey="total_advances" name="السلف المسحوبة" fill="var(--brand-danger)" radius={[4, 4, 0, 0]} />
+                    <Bar yAxisId="left" dataKey="total_wages" name="الأجور المحسوبة" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} maxBarSize={50} />
+                    <Bar yAxisId="left" dataKey="total_advances" name="السلف المسحوبة" fill="var(--brand-danger)" radius={[4, 4, 0, 0]} maxBarSize={50} />
                     <Line yAxisId="right" type="monotone" dataKey="total_days" name="أيام العمل" stroke="var(--brand-accent)" strokeWidth={3} dot={{ r: 4, fill: 'var(--brand-accent)' }} />
                 </ComposedChart>
             </ResponsiveContainer>

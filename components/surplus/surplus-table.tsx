@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { formatCurrency, formatDate } from '@/lib/format'
 import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 const ConsumeDialog = dynamic(() => import('./consume-dialog').then(mod => mod.ConsumeDialog))
 const ScrapDialog = dynamic(() => import('./scrap-dialog').then(mod => mod.ScrapDialog))
@@ -44,13 +45,32 @@ export function SurplusTable({ items, projects, currentStatus }: SurplusTablePro
   const [consumeItem, setConsumeItem] = useState<SurplusRecord | null>(null)
   const [scrapItem, setScrapItem] = useState<SurplusRecord | null>(null)
   const [isReturnOpen, setIsReturnOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const q = searchQuery.toLowerCase()
+  const filteredItems = items.filter((item) =>
+    !q ||
+    item.material_name.toLowerCase().includes(q) ||
+    (item.notes || '').toLowerCase().includes(q) ||
+    (item.source_project?.name || '').toLowerCase().includes(q) ||
+    formatDate(item.created_at).includes(q)
+  )
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-muted-foreground">
-          عدد العناصر: <span className="font-bold text-foreground">{items.length}</span>
-        </p>
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <p className="text-sm font-semibold text-muted-foreground whitespace-nowrap">
+            عدد العناصر: <span className="font-bold text-foreground">{filteredItems.length}</span>
+          </p>
+          <Input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="بحث في العناصر..."
+            className="w-full sm:w-64"
+          />
+        </div>
 
         <Button
           onClick={() => setIsReturnOpen(true)}
@@ -101,7 +121,7 @@ export function SurplusTable({ items, projects, currentStatus }: SurplusTablePro
                 </tr>
               </thead>
               <tbody className="divide-y divide-border text-foreground">
-                {items.map((item) => (
+                {filteredItems.map((item) => (
                   <tr key={item.id} className="transition hover:bg-muted/50">
                     {/* اسم المادة */}
                     <td className="px-4 py-3.5 text-start font-bold text-primary">

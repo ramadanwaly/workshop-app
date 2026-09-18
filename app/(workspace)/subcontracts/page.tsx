@@ -6,8 +6,7 @@ import { SubcontractsHeaderActions } from '@/components/subcontracts/subcontract
 import { Pagination } from '@/components/ui/pagination'
 import { getSubcontractOrders } from '@/actions/subcontracts'
 import { formatCurrency } from '@/lib/format'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { DebouncedSearchInput } from '@/components/ui/debounced-search-input'
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
   active: { label: 'قيد التنفيذ', cls: 'border-success/50 bg-success/10 text-success' },
@@ -59,36 +58,13 @@ export default async function SubcontractsPage(props: SubcontractsPageProps) {
           )}
         </header>
 
-        <form
-          method="get"
-          action="/subcontracts"
-          className="mb-6 flex flex-col gap-3 rounded-md border border-border bg-card p-3 sm:flex-row"
-        >
-          <Input
-            type="search"
-            name="q"
-            defaultValue={query ?? ''}
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center rounded-md border border-border bg-card p-3">
+          <DebouncedSearchInput
+            initialValue={query ?? ''}
             placeholder="بحث باسم المقاول..."
-            maxLength={100}
-            className="flex-1"
+            paramName="q"
           />
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              className="flex-1 sm:flex-none"
-            >
-              بحث
-            </Button>
-            {query && (
-              <Link
-                href="/subcontracts"
-                className="inline-flex h-10 flex-1 items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-4 py-2 font-bold transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:flex-none"
-              >
-                مسح
-              </Link>
-            )}
-          </div>
-        </form>
+        </div>
 
         <Suspense key={`${query ?? ''}-${pageNum ?? '1'}`} fallback={<SubcontractsSkeleton />}>
           <SubcontractsList query={query} pageNum={pageNum} />

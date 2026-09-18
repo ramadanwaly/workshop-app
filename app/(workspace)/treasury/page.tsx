@@ -7,13 +7,10 @@ import { getOperatingAllocationCycles, getOperatingAllocationExclusions } from '
 import { LedgerTable } from '@/components/treasury/ledger-table'
 import { OperatingAllocationPanel } from '@/components/treasury/operating-allocation-panel'
 import { Pagination } from '@/components/ui/pagination'
-import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import { TreasuryFilters } from '@/components/treasury/treasury-filters'
 
 type TreasuryPageProps = {
-  searchParams: Promise<{ q?: string; category?: string; from?: string; to?: string; page?: string }>
+  searchParams: Promise<{ q?: string; category?: string; type?: string; from?: string; to?: string; page?: string }>
 }
 
 const CATEGORY_OPTIONS = [
@@ -35,12 +32,13 @@ export default async function TreasuryPage(props: TreasuryPageProps) {
   const filters = {
     q: searchParams?.q || undefined,
     category: searchParams?.category || undefined,
+    type: searchParams?.type || undefined,
     from: searchParams?.from || undefined,
     to: searchParams?.to || undefined,
     page: searchParams?.page || undefined,
   }
 
-  const hasActiveFilters = Boolean(filters.q || filters.category || filters.from || filters.to)
+  const hasActiveFilters = Boolean(filters.q || filters.category || filters.type || filters.from || filters.to)
 
   return (
     <main className="min-h-screen pb-16">
@@ -54,7 +52,7 @@ export default async function TreasuryPage(props: TreasuryPageProps) {
           </div>
         </div>
 
-        <Suspense key={JSON.stringify(filters)} fallback={<TreasurySkeleton />}>
+        <Suspense fallback={<TreasurySkeleton />}>
           <TreasuryContent filters={filters} hasActiveFilters={hasActiveFilters} />
         </Suspense>
       </div>
@@ -72,7 +70,7 @@ function TreasurySkeleton() {
   )
 }
 
-async function TreasuryContent({ filters, hasActiveFilters }: { filters: { q?: string; category?: string; from?: string; to?: string; page?: string }; hasActiveFilters: boolean }) {
+async function TreasuryContent({ filters, hasActiveFilters }: { filters: { q?: string; category?: string; type?: string; from?: string; to?: string; page?: string }; hasActiveFilters: boolean }) {
   const supabase = await createClient()
 
   const {
@@ -179,34 +177,11 @@ async function TreasuryContent({ filters, hasActiveFilters }: { filters: { q?: s
             </span>
           )}
         </div>
-        <form method="get" action="/treasury" className="rounded-md border border-border bg-card p-4">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_auto] lg:items-end">
-            <div>
-              <Label htmlFor="ledger-search" className="mb-2 block text-xs font-bold text-secondary">البحث في الوصف أو المشروع</Label>
-              <Input id="ledger-search" type="search" name="q" defaultValue={filters.q ?? ''} placeholder="مثال: شراء خشب..." maxLength={100} />
-            </div>
-            <div>
-              <Label htmlFor="ledger-category" className="mb-2 block text-xs font-bold text-secondary">التصنيف (اختياري)</Label>
-              <Select id="ledger-category" name="category" defaultValue={filters.category ?? ''}>
-                {CATEGORY_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="ledger-from" className="mb-2 block text-xs font-bold text-secondary">من تاريخ</Label>
-              <Input id="ledger-from" type="date" name="from" defaultValue={filters.from ?? ''} />
-            </div>
-            <div>
-              <Label htmlFor="ledger-to" className="mb-2 block text-xs font-bold text-secondary">إلى تاريخ</Label>
-              <Input id="ledger-to" type="date" name="to" defaultValue={filters.to ?? ''} />
-            </div>
-            <div className="flex gap-2 pt-2 sm:col-span-2 lg:col-span-1 lg:pt-0">
-              <Button type="submit" className="flex-1 w-full" variant="default">تطبيق</Button>
-              {hasActiveFilters && (
-                <Link href="/treasury" className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-bold text-ink transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">مسح</Link>
-              )}
-            </div>
-          </div>
-        </form>
+        <TreasuryFilters
+          filters={filters}
+          categoryOptions={CATEGORY_OPTIONS}
+          hasActiveFilters={hasActiveFilters}
+        />
       </section>
 
       {/* Ledger Table */}
@@ -224,7 +199,7 @@ async function TreasuryContent({ filters, hasActiveFilters }: { filters: { q?: s
       <div className="mt-4">
         <Pagination
           basePath="/treasury"
-          params={{ q: filters.q, category: filters.category, from: filters.from, to: filters.to }}
+          params={{ q: filters.q, category: filters.category, type: filters.type, from: filters.from, to: filters.to }}
           page={ledger?.page ?? 1}
           perPage={ledger?.perPage ?? 50}
           total={ledger?.total ?? 0}
