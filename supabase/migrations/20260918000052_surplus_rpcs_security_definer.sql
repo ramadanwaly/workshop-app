@@ -1,5 +1,7 @@
 -- =============================================================================
--- Migration: 20260918000049b_surplus_rpcs_security_definer.sql
+-- Migration: 20260918000052_surplus_rpcs_security_definer.sql
+-- (renamed from 20260918000049b — pure numeric version; migrate script keys
+--  on leading digits only so 49/49b collided. CREATE OR REPLACE → safe.)
 -- Purpose  : تحويل rpc_scrap_surplus و rpc_consume_surplus إلى SECURITY DEFINER
 --            حتى يستطيع المدير تنفيذها عبر المسار الآمن المقصود،
 --            بعد أن أصبح UPDATE على surplus_bank مقيداً للمالك فقط (migration 49).
@@ -191,3 +193,4 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+

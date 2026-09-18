@@ -70,9 +70,25 @@ echo "[migrate] bookkeeping table ready"
 
 APPLIED=0
 SKIPPED=0
+# Guard: filenames must start with a pure numeric version followed by _ .
+# A letter suffix like 49b collides with 49 because version extraction takes
+# leading digits only — fail fast instead of recording a wrong ledger row.
 for f in "$MIGR"/[0-9]*.sql; do
   base="$(basename "$f")"
-  v="$(printf '%s' "$base" | grep -o '^[0-9]*')"
+  if ! printf '%s' "$base" | grep -qE '^[0-9]+_'; then
+    echo "[migrate] FAIL: bad migration filename (must be <digits>_<name>.sql, no letter suffix like 49b): ${base}" >&2
+    exit 1
+  fi
+done
+# Guard: no two files may map to the same numeric version.
+dup_versions="$(for f in "$MIGR"/[0-9]*.sql; do basename "$f" | grep -oE '^[0-9]+'; done | sort | uniq -d || true)"
+if [ -n "$dup_versions" ]; then
+  echo "[migrate] FAIL: duplicate migration versions (rename to pure numeric versions): ${dup_versions}" >&2
+  exit 1
+fi
+for f in "$MIGR"/[0-9]*.sql; do
+  base="$(basename "$f")"
+  v="$(printf '%s' "$base" | grep -oE '^[0-9]+')"
   sha="$(sha256sum "$f" | cut -d' ' -f1)"
   rec="$(remote_query "-tA" "SELECT COALESCE(sha256, '<no-sha>') FROM supabase_migrations.schema_migrations WHERE version = '${v}';")"
   if [ -n "$rec" ] && [ "$rec" != "<no-sha>" ]; then

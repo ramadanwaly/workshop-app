@@ -14,23 +14,12 @@ BEGIN
 END $$;
 
 -- Hard gate: the ledger must EXACTLY equal the migration files in
--- supabase/migrations/ (17 files: versions 01..14 after the 20260905000011
--- collision fix, plus 15 revoke_execute_public_functions,
--- 16 revoke_select_public_views and 17 worker_liabilities_view,
--- plus 18 idempotency_scope, 19 no_hard_delete_policies,
--- 20 default_privileges and 21 treasury_write_hardening,
--- plus 22 amount_upper_bounds, 23 text_bounds, 24 mandatory_reasons,
--- 25 rate_limits, 26 drop_old_remove_exclusion, 27 audit_log,
--- 28 cleanup_gate_settings_attendance, 29 audit_actor_nullable_lookup,
--- 30 attendance_unique_reverted and 31 drop_old_close_overload,
--- plus 32 fix_audit_triggers, 33 idempotency_expiration, 34 secure_auth_trigger,
--- 35 rate_limit_auth, 36 rpc_void_treasury_transaction, 37 settings_no_delete,
--- 38 surplus_no_zero_value, 39 settlement_audit_trail, 40 attendance_project_status,
--- 41 subcontract_immutability, and 42 handle_new_user_lock,
--- plus 43 performance_indexes, 44 surplus_status_stats_view
--- and 45 analytics_views, plus 46 portfolio_gallery (public gallery phase 1:
--- two isolated tables + single public view + portfolio bucket, no finance
--- touched), and 47 increase_portfolio_size.
+-- supabase/migrations/ (54 files: versions 01..47, plus 48, 49, 50, 51,
+-- 52 (surplus RPCs SECURITY DEFINER, previously misnamed 49b),
+-- 53 (return_surplus SECURITY DEFINER, previously misnamed 51b),
+-- 54 (ledger cleanup + naming guard for the b-suffix fix).
+-- Naming rule: pure numeric version prefix, no letter suffixes (49b/51b
+-- collided with 49/51 because the migrate script keys on leading digits).
 DO $$
 DECLARE
   v_expected text[] := ARRAY[
@@ -46,19 +35,20 @@ DECLARE
     '20260911000037','20260911000038','20260911000039','20260911000040',
     '20260911000041','20260911000042','20260915000043','20260915000044',
     '20260915000045','20260916000046','20260916000047',
-    '20260918000048','20260918000049','20260918000049b',
-    '20260918000050','20260918000051','20260918000051b'
+    '20260918000048','20260918000049',
+    '20260918000050','20260918000051','20260918000052','20260918000053',
+    '20260918000054'
   ];
   v_actual   text[];
 BEGIN
   v_actual := ARRAY(SELECT version FROM supabase_migrations.schema_migrations ORDER BY 1);
-  IF (SELECT count(*) FROM supabase_migrations.schema_migrations) <> 53
+  IF (SELECT count(*) FROM supabase_migrations.schema_migrations) <> 54
      OR v_actual IS DISTINCT FROM v_expected THEN
     RAISE EXCEPTION 'SMOKE FAIL: migration ledger drift (rows=% actual=% expected=% max=%)',
       (SELECT count(*) FROM supabase_migrations.schema_migrations),
       v_actual, v_expected, (SELECT max(version) FROM supabase_migrations.schema_migrations);
   END IF;
-  RAISE NOTICE 'migration ledger ok (53 / max 20260918000051b)';
+  RAISE NOTICE 'migration ledger ok (54 / max 20260918000054)';
 END $$;
 
 -- 2) Treasury balance view matches a manual recompute (scenarios 1 & 18)
@@ -224,27 +214,53 @@ END $$;
 
 -- 12) PUBLIC and anon have NO SELECT on any public table/view
 --     (from 20260905000016_revoke_select_public_views; views are tables)
+--     Sole exception: v_portfolio_gallery_public (portfolio gallery phase 1,
+--     migration 46) must be readable by anon visitors without login — 7 public
+--     columns only, no finance, no project_id. CI gate scripts/check-sql-hardening.sh
+--     already allowlists this exact GRANT.
 DO $$
 DECLARE
   bad int;
+  bad_names text;
 BEGIN
-  SELECT count(*) INTO bad
+  SELECT count(*), string_agg(c.relname, ', ') INTO bad, bad_names
   FROM pg_class c
   JOIN pg_namespace n ON n.oid = c.relnamespace
   CROSS JOIN LATERAL aclexplode(COALESCE(c.relacl, acldefault('r', c.relowner))) a
   LEFT JOIN pg_roles r ON r.oid = a.grantee
   WHERE n.nspname = 'public'
     AND c.relkind IN ('r', 'v', 'm', 'p', 'f')
+    AND c.relname <> 'v_portfolio_gallery_public'
     AND a.privilege_type = 'SELECT'
     AND (a.grantee = 0 OR r.rolname = 'anon');
 
   IF bad > 0 THEN
-    RAISE EXCEPTION 'public tables/views readable by PUBLIC/anon (%)', bad;
+    RAISE EXCEPTION 'public tables/views readable by PUBLIC/anon (%): %', bad, bad_names;
   END IF;
   RAISE NOTICE 'public tables/views not readable by PUBLIC/anon: ok';
 END $$;
 
+-- 12b) The single public gallery view MUST stay anon-readable (portfolio phase 1).
+--      Guards against a silent regression that would break /gallery for visitors.
+--      If this fails: migration 46's GRANT was revoked — restore it (append-only
+--      new migration), do not weaken check 12.
+DO $$
+BEGIN
+  IF NOT has_table_privilege('anon', 'public.v_portfolio_gallery_public', 'SELECT') THEN
+    RAISE EXCEPTION 'v_portfolio_gallery_public lost anon SELECT (portfolio /gallery broken)';
+  END IF;
+  IF has_table_privilege('anon', 'public.portfolio_entries', 'SELECT')
+     OR has_table_privilege('anon', 'public.portfolio_photos', 'SELECT')
+     OR has_table_privilege('anon', 'public.projects', 'SELECT')
+     OR has_table_privilege('anon', 'public.treasury_transactions', 'SELECT') THEN
+    RAISE EXCEPTION 'anon gained SELECT on a private table (gallery isolation broken)';
+  END IF;
+  RAISE NOTICE 'gallery public view anon-readable, base tables private: ok';
+END $$;
+
 -- 13) authenticated still has SELECT on every public view (app depends on it)
+--     Note: the anon-readable gallery view is checked in 12b; here we only
+--     require authenticated readability (anon views always grant both).
 DO $$
 DECLARE
   gap int;

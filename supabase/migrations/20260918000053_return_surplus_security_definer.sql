@@ -1,5 +1,7 @@
 -- =============================================================================
--- Migration: 20260918000051b_return_surplus_security_definer.sql
+-- Migration: 20260918000053_return_surplus_security_definer.sql
+-- (renamed from 20260918000051b — pure numeric version; migrate script keys
+--  on leading digits only so 51/51b collided. CREATE OR REPLACE → safe.)
 -- Purpose  : تحويل rpc_return_surplus إلى SECURITY DEFINER.
 --
 --   بعد migration 51 (حذف cost_adj_insert policy) وmigration 49 (تقييد
