@@ -1,6 +1,7 @@
 // Structured, sanitized server-side logger for financial actions.
 // Never emits secrets: known secret-bearing keys are redacted before logging.
 // Output is a single JSON line per event prefixed `[app]` for greppability.
+import { reportToSentry } from '@/lib/sentry'
 
 const REDACT_KEYS = /(password|passwd|secret|token|jwt|api[_-]?key|authorization|cookie|supabase_)/i
 const MAX_DEPTH = 5
@@ -29,11 +30,14 @@ function sanitize(value: unknown, depth = 0): unknown {
   return value
 }
 
-function write(level: 'info' | 'warn' | 'error', action: string, detail: LogDetail): void {
+function write(level: 'info' | 'warn' | 'error', action: string, detail: LogDetail, requestId?: string): void {
   const entry: Record<string, unknown> = {
     ts: new Date().toISOString(),
     level,
     action,
+  }
+  if (requestId) {
+    entry.requestId = requestId
   }
   if (typeof detail === 'string') {
     entry.message = detail
@@ -44,16 +48,17 @@ function write(level: 'info' | 'warn' | 'error', action: string, detail: LogDeta
   console.error(`[app] ${JSON.stringify(entry)}`)
 }
 
-export function logInfo(action: string, detail: LogDetail): void {
-  write('info', action, detail)
+export function logInfo(action: string, detail: LogDetail, requestId?: string): void {
+  write('info', action, detail, requestId)
 }
 
-export function logWarn(action: string, detail: LogDetail): void {
-  write('warn', action, detail)
+export function logWarn(action: string, detail: LogDetail, requestId?: string): void {
+  write('warn', action, detail, requestId)
 }
 
-export function logError(action: string, detail: LogDetail): void {
-  write('error', action, detail)
+export function logError(action: string, detail: LogDetail, requestId?: string): void {
+  write('error', action, detail, requestId)
+  reportToSentry(action, detail)
 }
 
 export const LOGGER = { info: logInfo, warn: logWarn, error: logError }

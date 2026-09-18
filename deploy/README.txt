@@ -1,156 +1,96 @@
-# ✅ تشغيل برنامج الورشة
+# ✅ دليل تشغيل وإدارة برنامج الورشة (Operational Runbook)
 
-برنامج بسيط لا يحتاج خبرة تقنية — اتبع الخطوات بالترتيب.
-
----
-
-## قبل ما نبدأ: إيه اللي تحتاجه؟
-
-1. **سيرفر أو كمبيوتر دايم الشغل** عليه Docker و Docker Compose
-2. **مشروع Supabase** جاهز (على Supabase Cloud أو مستضاف عندك)
-3. **النطاق** اختياري؛ استخدم `http://localhost:3000` للتجربة المحلية
-
-> ملاحظة: هذا الملف يشغّل تطبيق الورشة فقط. تشغيل Supabase ذاتياً يحتاج إعداداً منفصلاً وموارد كافية.
+برنامج إدارة الورشة والمحاسبة — دليل شامل للبيئات الإنتاجية وإرشادات الأمان والصيانة.
 
 ---
 
-## الخطوة 1: تثبيت Docker و Docker Compose
+## قبل البدء: متطلبات البيئة
 
-على Ubuntu/Debian، انسخ والصق التالي في الطرفية:
+1. **خادم إنتاجي** يعمل عليه Docker و Docker Compose.
+2. **مشروع Supabase** مفصّل ومهيّأ (Supabase Cloud أو Self-hosted).
+3. **نطاق عام مؤمّن برمز SSL/TLS (HTTPS)** خلف بروكسي عاكس مثل Nginx أو Cloudflare.
 
-```bash
-curl -fsSL https://get.docker.com | sh
-sudo systemctl enable --now docker
+---
+
+## الخطوة 1: إعداد متغيرات البيئة (`.env.production`)
+
+قم بتجهيز متغيرات البيئة المطلوبة للأمان:
+
+```dotenv
+NODE_ENV=production
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-private-service-role-key
+NEXT_PUBLIC_SITE_URL=https://workshop.example.com
+SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
 ```
 
-تأكد أنهما شغالان:
-
-```bash
-docker --version
-docker compose version
-```
+> 🚨 **تنبيه أمني صارم**:
+> - لا تضف `NEXT_PUBLIC_` على `SUPABASE_SERVICE_ROLE_KEY`. هذا المفتاح محمي بنطاق `server-only`.
+> - يجب أن تطابق قيمة `NEXT_PUBLIC_SITE_URL` النطاق الفعلي لمنع ثغرات Host Header Injection.
 
 ---
 
-## الخطوة 2: تجهيز قيم Supabase
-
-من إعدادات مشروع Supabase، احصل على:
-
-- **Project URL** — مثال: `https://your-project.supabase.co`
-- **Anon/Public key** — المفتاح العام فقط، وليس `service_role`
-
-إذا كنت تستضيف Supabase بنفسك، استخدم عنوان الـ API الذي يستطيع المتصفح والسيرفر الوصول إليه، وليس عنواناً داخلياً مثل `localhost` عند تشغيل التطبيق على سيرفر بعيد.
-
----
-
-## الخطوة 3: إعداد ملف `.env`
-
-من داخل مجلد `deploy`، أنشئ الملف تلقائياً لأول مرة:
+## الخطوة 2: تشغيل الحاوية عبر Docker
 
 ```bash
 cd deploy
 ./start.sh
 ```
 
-سيتوقف السكربت ويطلب منك تعديل `.env`. افتحه وضع القيم الصحيحة:
-
-```dotenv
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-```
-
-غيّر `NEXT_PUBLIC_SITE_URL` إلى عنوان الموقع النهائي، مثل `https://workshop.example.com`، عند استخدام نطاق عام.
-
-> لا تضع كلمة مرور قاعدة البيانات أو `SUPABASE_SERVICE_ROLE_KEY` في هذا الملف إلا إذا كان التطبيق يحتاجها فعلاً، ولا تشارك أي مفتاح سري. المفتاح `NEXT_PUBLIC_SUPABASE_ANON_KEY` عام بطبيعته لكنه يجب أن يكون محمياً بسياسات RLS الصحيحة.
-
----
-
-## الخطوة 4: تشغيل البرنامج
+أو عبر Docker Compose مباشرة:
 
 ```bash
-./start.sh
+docker compose up -d --build
 ```
-
-يفتح التطبيق على:
-
-```
-http://localhost:3000
-```
-
-أو استخدم عنوان IP/النطاق الخاص بالسيرفر.
-
-> يتم تمرير قيم `NEXT_PUBLIC_*` إلى مرحلة البناء لأن Next.js يضمّنها في JavaScript الخاص بالمتصفح. لذلك أعد البناء بعد تغيير هذه القيم.
 
 ---
 
-## الخطوة 5: إنشاء أول حساب
+## المراقبة وفحوص الجاهزية (Health Checks)
 
-أول واحد يسجل حساباً جديداً في البرنامج يصبح **Owner (المالك)** وله كل الصلاحيات.
+يوفر التطبيق نقطتي فحص محماة ومصممة لنظم المراقبة والـ Load Balancers:
+
+1. **فحص سلامة الخدمة الخفيفة**:
+   - GET `/api/health`
+   - يفحص الاتصال بقاعدة البيانات وحالة المعالج والـ uptime.
+
+2. **فحص اكتمال الهيكل والهجرات**:
+   - GET `/api/health/schema`
+   - يستدعي الدالة الأمنية `rpc_health_schema_check()` للتأكد من تطبيق كافة الهجرات بنجاح.
+
+3. **فحص اكتمال سياسات RLS**:
+   - عبر SQL أو Supabase Client للمالك: `SELECT public.rpc_check_rls_completeness();`
+   - يتحقق من تفعيل سياسات Row-Level Security على 100% من جداول القاعدة العامة.
 
 ---
 
-## أوامر تشغيل يومية
+## قواعد الهجرات والصيانة (Database Migrations)
 
-نفّذ الأوامر من مجلد `deploy`:
+- **القاعدة الذهبية**: جميع ملفات الهجرة في `supabase/migrations/*.sql` هي **Append-Only** (ممنوع تعديل أي ملف هجرة قديم بعد تطبيقه).
+- **فحص الدخان المالي والتحقق من الهيكل**:
+  ```bash
+  psql -v ON_ERROR_STOP=1 -f supabase/verify_smoke.sql
+  ```
+- **فحص الصلابة في CI**:
+  ```bash
+  npm run check
+  ```
+
+---
+
+## سجل الأخطاء والمراقبة المركزية (Sentry & Logging)
+
+- يتم تسجيل جميع الأخطاء المالية والتشغيلية في صورة JSON منتظم مع حجب تلقائي للكلمات السرية والمفاتيح (Sanitization).
+- عند تفعيل `SENTRY_DSN` أو `NEXT_PUBLIC_SENTRY_DSN` يتم إرسال الاستثناءات غير المعالجة تلقائياً إلى Sentry مع معرفات الحوادث (Request IDs).
+
+---
+
+## أوامر التشغيل والصيانة اليومية
 
 | العملية | الأمر |
 |---------|-------|
-| تشغيل/بناء | `./start.sh` |
-| إيقاف | `./start.sh stop` |
-| إعادة تشغيل | `./start.sh restart` |
-| مشاهدة الأخطاء | `./start.sh logs` |
-| حالة البرنامج | `./start.sh status` |
-| تحديث وإعادة بناء | `./start.sh update` |
-
----
-
-## النشر على الإنترنت (اختياري)
-
-لا تعرّض منفذ التطبيق للعامة مباشرة إذا كان لديك Nginx أو reverse proxy. مثال مبسط:
-
-```bash
-sudo apt install nginx certbot python3-certbot-nginx
-sudo nano /etc/nginx/sites-available/workshop
-```
-
-المحتوى:
-
-```nginx
-server {
-    server_name workshop.example.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-فعّل الموقع وأضف SSL:
-
-```bash
-sudo ln -s /etc/nginx/sites-available/workshop /etc/nginx/sites-enabled/workshop
-sudo nginx -t
-sudo systemctl reload nginx
-sudo certbot --nginx -d workshop.example.com
-```
-
-بعدها حدّث `NEXT_PUBLIC_SITE_URL` في `.env` إلى نطاق HTTPS ثم نفّذ:
-
-```bash
-./start.sh update
-```
-
----
-
-## النسخ الاحتياطي والملاحظات المهمة
-
-- 🔒 لا تشارك كلمات المرور أو مفاتيح `service_role`.
-- 💾 اعمل نسخاً احتياطية دورية لقاعدة Supabase؛ ملفات التطبيق لا تحتوي على بيانات قاعدة البيانات.
-- 🔄 عند تحديث الكود، نفّذ `git pull` ثم `./start.sh update`.
-- 🔐 تأكد من تفعيل RLS وسياسات الوصول المناسبة في Supabase.
+| تشغيل وبناء | `./start.sh` |
+| إيقاف الخدمة | `./start.sh stop` |
+| عرض السجلات الحية | `docker compose logs -f --tail=100` |
+| فحص الصلابة الشامل | `npm run check` |
+| فحص الهجرات | `psql -f supabase/verify_smoke.sql` |

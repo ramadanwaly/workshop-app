@@ -1,20 +1,38 @@
-// Error masking for financial actions.
+// Error masking & standardized error codes for financial actions and API routes.
 //
 // Principle: the client only ever sees intentional, human-safe messages.
 // Internal details (Postgres/Supabase errors, stack traces, table/constraint
 // names) are logged server-side and never shipped to the browser.
-//
-// What DOES reach the client untouched:
-//   - Zod validation messages (client-controlled input)
-//   - Business rejection messages raised deliberately inside the secure RPCs
-//     via RAISE EXCEPTION (Postgres code P0001) — these are authored Arabic text.
-// Everything else is masked to a generic message while its full detail is logged.
 
 import { logError, logWarn } from '@/lib/logger'
 import type { PostgrestError } from '@supabase/supabase-js'
 import { IdempotencyError } from '@/lib/supabase/idempotency'
 
 export const GENERIC_ERROR_MESSAGE = 'حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى لاحقاً'
+
+export const ERROR_CODES = {
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  RATE_LIMITED: 'RATE_LIMITED',
+  IDEMPOTENCY_CONFLICT: 'IDEMPOTENCY_CONFLICT',
+  NOT_FOUND: 'NOT_FOUND',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const
+
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES]
+
+export class ActionError extends Error {
+  code: ErrorCode
+  statusCode: number
+
+  constructor(message: string, code: ErrorCode = ERROR_CODES.INTERNAL_ERROR, statusCode = 400) {
+    super(message)
+    this.name = 'ActionError'
+    this.code = code
+    this.statusCode = statusCode
+  }
+}
 
 /** Raise PostgreSQL/supabase business error deliberately from secure RPC. */
 export function isBusinessError(error: { code?: string; message?: string } | null | undefined): boolean {
@@ -28,6 +46,7 @@ export function isBusinessError(error: { code?: string; message?: string } | nul
 export function maskAndLogError(action: string, err: unknown): string {
   logError(action, err)
   if (err instanceof IdempotencyError) return err.message
+  if (err instanceof ActionError) return err.message
   return GENERIC_ERROR_MESSAGE
 }
 

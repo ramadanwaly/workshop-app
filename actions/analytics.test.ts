@@ -51,14 +51,14 @@ describe('Analytics Server Actions', () => {
         })
     })
 
-    describe('getProjectProfitability', () => {
-        it('fetches project profitability correctly', async () => {
+    describe('Pagination & Range parameters', () => {
+        it('applies custom limit and offset when provided', async () => {
             h.state.user = { id: 'owner-id' }
             h.state.role = 'owner'
             
             h.when('v_project_profitability', 'select', [{ project_id: '123', total_revenue: 10000, net_profit: 2000 }])
 
-            const res = await getProjectProfitability()
+            const res = await getProjectProfitability({ limit: 10, offset: 20 })
             expect(res.success).toBe(true)
             expect(res.data).toBeDefined()
             
@@ -68,13 +68,13 @@ describe('Analytics Server Actions', () => {
     })
 
     describe('getWorkerPerformanceStats', () => {
-        it('fetches worker performance correctly', async () => {
+        it('fetches worker performance correctly with pagination', async () => {
             h.state.user = { id: 'owner-id' }
             h.state.role = 'owner'
             
             h.when('v_worker_performance_stats', 'select', [{ worker_id: 'w1', total_days: 5, total_wages: 500, total_advances: 100 }])
 
-            const res = await getWorkerPerformanceStats()
+            const res = await getWorkerPerformanceStats({ limit: 25, offset: 0 })
             expect(res.success).toBe(true)
             expect(res.data).toBeDefined()
 

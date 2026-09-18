@@ -2,17 +2,17 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { Database } from '@/types/database.types'
 import { checkRateLimit, hashId } from '@/lib/rate-limit'
+import { env } from '@/lib/validations/env'
 
 // Security headers applied to every proxied response.
 // The CSP allows only same-origin assets plus the Supabase API origin used for
 // auth/REST calls; inline styles/scripts are needed by Next.js hydration.
 function securityHeaders(): Record<string, string> {
-  const supabaseOrigin = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? '')
-    .replace(/\/$/, '')
+  const supabaseOrigin = env.NEXT_PUBLIC_SUPABASE_URL.replace(/\/$/, '')
   const connectSrc = supabaseOrigin
     ? `'self' ${supabaseOrigin} ws: wss:`
     : `'self' ws: wss:`
-  const evalSrc = process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
+  const evalSrc = env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''
   return {
     'Content-Security-Policy': [
       "default-src 'self'",
@@ -53,8 +53,8 @@ export async function updateSession(request: NextRequest) {
   })
 
   const supabase = createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     {
       cookies: {
         getAll() {

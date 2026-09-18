@@ -6,19 +6,22 @@ import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import { checkRateLimit, hashId, rateLimitMessage } from '@/lib/rate-limit'
+import { logError } from '@/lib/logger'
+
+import { env } from '@/lib/validations/env'
 
 // ---------------------------------------------------------------------------
 // رابط الموقع الثابت — يُقرأ من متغير البيئة فقط وليس من ترويسة الطلب.
 // هذا يمنع ثغرة تسميم Host حيث يمكن للمهاجم توجيه رمز الدخول لموقعه.
 // ---------------------------------------------------------------------------
 function getSiteUrl(): string {
-  const url = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '')
+  const url = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '')
   if (!url) throw new Error('متغير NEXT_PUBLIC_SITE_URL غير مضبوط في بيئة الخادم')
   return url
 }
 
 // عنوان العميل للبصمات (يُجزّأ دائماً قبل التخزين — انظر lib/rate-limit.ts).
-// ملاحظة: تسجيل الدخول بكلمة المرور مغطى في طبقة proxy (POST /login)،
+// ملاحظة: تسجيل الدخول بكلمة المرور مغطى في طبقة middleware (POST /login)،
 // لذلك لا يُفحص هنا مرة ثانية حتى لا يُخصم من الحصة مرتين.
 async function clientIpBucket(prefix: string, extra: string): Promise<string> {
   let ip = 'unknown'
@@ -77,7 +80,7 @@ export async function signInWithPassword(input: {
   })
 
   if (error) {
-    console.error('[auth] فشل تسجيل الدخول بكلمة المرور:', error.message)
+    logError('auth_sign_in_password', error)
     return {
       success: false,
       error: 'بيانات الدخول غير صحيحة، يرجى المحاولة مرة أخرى',
@@ -119,7 +122,7 @@ export async function signInWithOtp(input: { email: string }): Promise<AuthResul
   })
 
   if (error) {
-    console.error('[auth] فشل إرسال الرابط السحري:', error.message)
+    logError('auth_sign_in_otp', error)
     return {
       success: false,
       error: 'تعذّر إرسال رابط الدخول، يرجى التحقق من البريد الإلكتروني',
@@ -159,7 +162,7 @@ export async function requestPasswordReset(input: { email: string }): Promise<Au
   })
 
   if (error) {
-    console.error('[auth] فشل طلب إعادة تعيين كلمة المرور:', error.message)
+    logError('auth_request_password_reset', error)
     return {
       success: false,
       error: 'تعذّر إرسال رابط إعادة التعيين، يرجى التحقق من البريد الإلكتروني',
@@ -210,7 +213,7 @@ export async function updatePassword(input: { password: string }): Promise<AuthR
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password })
 
   if (error) {
-    console.error('[auth] فشل تحديث كلمة المرور:', error.message)
+    logError('auth_update_password', error)
     return {
       success: false,
       error: 'تعذّر تحديث كلمة المرور، يرجى المحاولة مرة أخرى',

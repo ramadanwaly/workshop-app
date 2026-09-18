@@ -135,9 +135,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 REVOKE EXECUTE ON FUNCTION app_private.append_audit_log(TEXT, TEXT, UUID, TEXT, JSONB) FROM PUBLIC, anon;
--- WARNING: This grant is REVOKED later in migration 20260918000050 for security reasons.
 GRANT EXECUTE ON FUNCTION app_private.append_audit_log(TEXT, TEXT, UUID, TEXT, JSONB) TO authenticated;
-
 
 -- ----------------------------------------------------------------------------
 -- 5. Automatic triggers: voids / closes / cost-reallocations.
