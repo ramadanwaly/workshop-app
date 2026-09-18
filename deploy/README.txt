@@ -6,103 +6,111 @@
 
 ## قبل ما نبدأ: إيه اللي تحتاجه؟
 
-1. **سيرفر أو كمبيوتر دايم الشغل** عليه Docker (أو اتبع خطوات التثبيت أدناه)
-2. **حساب Supabase** (ده مخزن البيانات) — لازم يكون فيه جاهز
-3. **النطاق** (اختياري لكن يفضل)
+1. **سيرفر أو كمبيوتر دايم الشغل** عليه Docker و Docker Compose
+2. **مشروع Supabase** جاهز (على Supabase Cloud أو مستضاف عندك)
+3. **النطاق** اختياري؛ استخدم `http://localhost:3000` للتجربة المحلية
+
+> ملاحظة: هذا الملف يشغّل تطبيق الورشة فقط. تشغيل Supabase ذاتياً يحتاج إعداداً منفصلاً وموارد كافية.
 
 ---
 
 ## الخطوة 1: تثبيت Docker و Docker Compose
 
-انسخ والصق هذا في الطرفية (terminal):
+على Ubuntu/Debian، انسخ والصق التالي في الطرفية:
 
 ```bash
 curl -fsSL https://get.docker.com | sh
 sudo systemctl enable --now docker
 ```
 
-تأكد أنه شغال:
+تأكد أنهما شغالان:
 
 ```bash
 docker --version
+docker compose version
 ```
 
 ---
 
-## الخطوة 2: تجهيز قاعدة البيانات (Supabase)
+## الخطوة 2: تجهيز قيم Supabase
 
-> **لو عندك Supabase جاهز سابقاً من مـنصّ الورشة الأولى، استخدمه كما هو.**
+من إعدادات مشروع Supabase، احصل على:
 
-اجعل Supabase يعمل على سيرفرك:
+- **Project URL** — مثال: `https://your-project.supabase.co`
+- **Anon/Public key** — المفتاح العام فقط، وليس `service_role`
 
-```bash
-# على سيرفرك:
-git clone https://github.com/supabase/supabase
-cd supabase/docker
-cp .env.example .env
-# عدّل ملف .env بقيمك
-docker compose up -d
-```
-
-بعدها: الصق بيانات الاتصال في ملف `.env` (الخطوة 3).
+إذا كنت تستضيف Supabase بنفسك، استخدم عنوان الـ API الذي يستطيع المتصفح والسيرفر الوصول إليه، وليس عنواناً داخلياً مثل `localhost` عند تشغيل التطبيق على سيرفر بعيد.
 
 ---
 
-## الخطوة 3: عدّل ملف `.env`
+## الخطوة 3: إعداد ملف `.env`
 
-أول مرة تشغّل فيها `./start.sh`، هيتعمل ملف جديد اسمه `.env` تلقائياً (في نفس مجلد `deploy`). افتحه بعدها وعدّل القيمتين:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://الرابط-بتاعك
-NEXT_PUBLIC_SUPABASE_ANON_KEY=المفتاح-العام-بتاعك
-```
-
-> سواء كانت Supabase على سيرفرك أو على سيرفر خارجي (مثلاً supabase.com)، ضع الرابط والمفتاح في `.env`.
-
----
-
-## الخطوة 4: تشغيل البرنامج
+من داخل مجلد `deploy`، أنشئ الملف تلقائياً لأول مرة:
 
 ```bash
 cd deploy
 ./start.sh
 ```
 
-بعد ثواني هتفتح المتصفح وتدخل على:
+سيتوقف السكربت ويطلب منك تعديل `.env`. افتحه وضع القيم الصحيحة:
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-public-anon-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+غيّر `NEXT_PUBLIC_SITE_URL` إلى عنوان الموقع النهائي، مثل `https://workshop.example.com`، عند استخدام نطاق عام.
+
+> لا تضع كلمة مرور قاعدة البيانات أو `SUPABASE_SERVICE_ROLE_KEY` في هذا الملف إلا إذا كان التطبيق يحتاجها فعلاً، ولا تشارك أي مفتاح سري. المفتاح `NEXT_PUBLIC_SUPABASE_ANON_KEY` عام بطبيعته لكنه يجب أن يكون محمياً بسياسات RLS الصحيحة.
+
+---
+
+## الخطوة 4: تشغيل البرنامج
+
+```bash
+./start.sh
+```
+
+يفتح التطبيق على:
 
 ```
 http://localhost:3000
 ```
 
-(أو استخدم IP السيرفر إذا شغال عليه)
+أو استخدم عنوان IP/النطاق الخاص بالسيرفر.
+
+> يتم تمرير قيم `NEXT_PUBLIC_*` إلى مرحلة البناء لأن Next.js يضمّنها في JavaScript الخاص بالمتصفح. لذلك أعد البناء بعد تغيير هذه القيم.
 
 ---
 
 ## الخطوة 5: إنشاء أول حساب
 
-أول واحد يسجل حساب جديد في البرنامج، هو اللي يبقى **Owner (المالك)** — له كل الصلاحيات.
+أول واحد يسجل حساباً جديداً في البرنامج يصبح **Owner (المالك)** وله كل الصلاحيات.
 
 ---
 
 ## أوامر تشغيل يومية
 
+نفّذ الأوامر من مجلد `deploy`:
+
 | العملية | الأمر |
 |---------|-------|
-| تشغيل | `./start.sh` |
+| تشغيل/بناء | `./start.sh` |
 | إيقاف | `./start.sh stop` |
 | إعادة تشغيل | `./start.sh restart` |
 | مشاهدة الأخطاء | `./start.sh logs` |
 | حالة البرنامج | `./start.sh status` |
+| تحديث وإعادة بناء | `./start.sh update` |
 
 ---
 
-## لو عايز تنشره على الإنترنت (اختياري)
+## النشر على الإنترنت (اختياري)
 
-حط Nginx قدامه — مثال مبسط:
+لا تعرّض منفذ التطبيق للعامة مباشرة إذا كان لديك Nginx أو reverse proxy. مثال مبسط:
 
 ```bash
-sudo apt install nginx certbot
-# عدّل server_name باسم النطاق بتاعك
+sudo apt install nginx certbot python3-certbot-nginx
 sudo nano /etc/nginx/sites-available/workshop
 ```
 
@@ -110,9 +118,11 @@ sudo nano /etc/nginx/sites-available/workshop
 
 ```nginx
 server {
-    server_name workshop-nour.example.com;
+    server_name workshop.example.com;
+
     location / {
         proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -121,18 +131,26 @@ server {
 }
 ```
 
-فعّل وأضف SSL:
+فعّل الموقع وأضف SSL:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/workshop /etc/nginx/sites-enabled/
-sudo certbot
+sudo ln -s /etc/nginx/sites-available/workshop /etc/nginx/sites-enabled/workshop
+sudo nginx -t
 sudo systemctl reload nginx
+sudo certbot --nginx -d workshop.example.com
+```
+
+بعدها حدّث `NEXT_PUBLIC_SITE_URL` في `.env` إلى نطاق HTTPS ثم نفّذ:
+
+```bash
+./start.sh update
 ```
 
 ---
 
-## ملاحظات مهمة
+## النسخ الاحتياطي والملاحظات المهمة
 
-- 🔒 كلمة مرور Supabase وأي مفاتيح سرية — لا تشاركها مع أحد
-- 💾 كل يوم أو أسبوعياً: اعمل backup (انظر ملفات `scripts/`)
-- 🔄 عند تحديث البرنامج: `./start.sh update`
+- 🔒 لا تشارك كلمات المرور أو مفاتيح `service_role`.
+- 💾 اعمل نسخاً احتياطية دورية لقاعدة Supabase؛ ملفات التطبيق لا تحتوي على بيانات قاعدة البيانات.
+- 🔄 عند تحديث الكود، نفّذ `git pull` ثم `./start.sh update`.
+- 🔐 تأكد من تفعيل RLS وسياسات الوصول المناسبة في Supabase.
