@@ -98,3 +98,27 @@ export async function getWorkerPerformanceStats(params: PaginationParams = {}): 
         return { success: false, error: maskAndLogError('getWorkerPerformanceStats', err) }
     }
 }
+
+// ----------------------------------------------------------------------------
+// 4. فروق التحميل الإداري (Overhead Variance)
+// ----------------------------------------------------------------------------
+export async function getOverheadVariance(): Promise<ActionResult> {
+    try {
+        const auth = await requireStaff()
+        if (!auth.userId) return { success: false, error: auth.error ?? 'غير مصرح لك' }
+        const supabase = auth.supabase
+
+        const { data, error } = await supabase
+            .from('v_overhead_variance_summary')
+            .select('*')
+            .single()
+
+        if (error) {
+            return { success: false, error: routeActionError('getOverheadVariance', error) }
+        }
+
+        return { success: true, data }
+    } catch (err: unknown) {
+        return { success: false, error: maskAndLogError('getOverheadVariance', err) }
+    }
+}

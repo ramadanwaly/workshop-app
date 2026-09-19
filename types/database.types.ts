@@ -993,6 +993,14 @@ export type Database = {
         }
         Relationships: []
       }
+      v_overhead_variance_summary: {
+        Row: {
+          total_treasury_out: number | null
+          total_projects_cost: number | null
+          overhead_variance: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       rpc_correct_attendance: {

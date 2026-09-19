@@ -2,7 +2,8 @@ import { Suspense } from 'react'
 import {
   getMonthlyTreasuryStats,
   getProjectProfitability,
-  getWorkerPerformanceStats
+  getWorkerPerformanceStats,
+  getOverheadVariance
 } from '@/actions/analytics'
 import {
   TreasuryChart,
@@ -17,18 +18,19 @@ export const metadata = {
 }
 
 async function AnalyticsContent() {
-  const [treasuryRes, projectsRes, workersRes] = await Promise.all([
+  const [treasuryRes, projectsRes, workersRes, varianceRes] = await Promise.all([
     getMonthlyTreasuryStats(),
     getProjectProfitability(),
-    getWorkerPerformanceStats()
+    getWorkerPerformanceStats(),
+    getOverheadVariance()
   ])
 
-  if (!treasuryRes.success || !projectsRes.success || !workersRes.success) {
+  if (!treasuryRes.success || !projectsRes.success || !workersRes.success || !varianceRes.success) {
     return (
       <div className="rounded-md border border-danger/30 bg-danger/5 p-6">
         <h2 className="mb-2 text-lg font-bold text-danger">تعذّر تحميل البيانات</h2>
         <p className="text-sm text-danger/80">
-          {treasuryRes.error || projectsRes.error || workersRes.error}
+          {treasuryRes.error || projectsRes.error || workersRes.error || varianceRes.error}
         </p>
       </div>
     )
@@ -37,6 +39,8 @@ async function AnalyticsContent() {
   const treasuryData = Array.isArray(treasuryRes.data) ? treasuryRes.data : []
   const projectsData = Array.isArray(projectsRes.data) ? projectsRes.data : []
   const workersData = Array.isArray(workersRes.data) ? workersRes.data : []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const overheadVariance = Number((varianceRes.data as any)?.overhead_variance) || 0
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalProjectsCost = projectsData.reduce((acc: number, p: any) => acc + (Number(p.estimated_total_cost) || 0), 0)
@@ -48,7 +52,7 @@ async function AnalyticsContent() {
   return (
     <div className="flex flex-col gap-8">
       {/* KPI Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm">
           <h3 className="text-sm font-medium text-secondary">إجمالي تكلفة المشاريع المنفذة</h3>
           <p className="mt-2 text-3xl font-bold tracking-tight text-danger">{formatCurrency(Math.abs(totalProjectsCost))}</p>
@@ -57,9 +61,15 @@ async function AnalyticsContent() {
           <h3 className="text-sm font-medium text-secondary">إجمالي إيرادات المشاريع</h3>
           <p className="mt-2 text-3xl font-bold tracking-tight text-ink">{formatCurrency(totalProjectsRevenue)}</p>
         </div>
-        <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm sm:col-span-2 lg:col-span-1">
-          <h3 className="text-sm font-medium text-secondary">إجمالي الأجور المحسوبة للعمال</h3>
+        <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="text-sm font-medium text-secondary">إجمالي الأجور المحسوبة</h3>
           <p className="mt-2 text-3xl font-bold tracking-tight text-primary">{formatCurrency(totalWorkerWages)}</p>
+        </div>
+        <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm">
+          <h3 className="text-sm font-medium text-secondary" title="الفارق بين تكلفة المشاريع والمصروف الفعلي">فروق التحميل الإداري</h3>
+          <p className={`mt-2 text-3xl font-bold tracking-tight ${overheadVariance >= 0 ? 'text-success' : 'text-danger'}`}>
+            {overheadVariance > 0 ? '+' : ''}{formatCurrency(overheadVariance)}
+          </p>
         </div>
       </div>
 
