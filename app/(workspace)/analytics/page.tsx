@@ -39,7 +39,7 @@ async function AnalyticsContent() {
   const workersData = Array.isArray(workersRes.data) ? workersRes.data : []
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalProjectsCost = projectsData.reduce((acc: number, p: any) => acc + (Number(p.net_profit) || 0), 0)
+  const totalProjectsCost = projectsData.reduce((acc: number, p: any) => acc + (Number(p.estimated_total_cost) || 0), 0)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalProjectsRevenue = projectsData.reduce((acc: number, p: any) => acc + (Number(p.total_revenue) || 0), 0)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
