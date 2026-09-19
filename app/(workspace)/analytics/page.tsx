@@ -39,7 +39,7 @@ async function AnalyticsContent() {
   const workersData = Array.isArray(workersRes.data) ? workersRes.data : []
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalProjectsProfit = projectsData.reduce((acc: number, p: any) => acc + (Number(p.net_profit) || 0), 0)
+  const totalProjectsCost = projectsData.reduce((acc: number, p: any) => acc + (Number(p.net_profit) || 0), 0)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalProjectsRevenue = projectsData.reduce((acc: number, p: any) => acc + (Number(p.total_revenue) || 0), 0)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,8 +50,8 @@ async function AnalyticsContent() {
       {/* KPI Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-secondary">إجمالي أرباح المشاريع</h3>
-          <p className="mt-2 text-3xl font-bold tracking-tight text-success">{formatCurrency(totalProjectsProfit)}</p>
+          <h3 className="text-sm font-medium text-secondary">إجمالي تكلفة المشاريع المنفذة</h3>
+          <p className="mt-2 text-3xl font-bold tracking-tight text-danger">{formatCurrency(Math.abs(totalProjectsCost))}</p>
         </div>
         <div className="flex flex-col justify-center rounded-xl border border-border bg-card p-6 shadow-sm">
           <h3 className="text-sm font-medium text-secondary">إجمالي إيرادات المشاريع</h3>
